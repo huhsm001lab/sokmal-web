@@ -1,0 +1,296 @@
+<div class="wrap">
+<header class="appbar"><button type="button" class="back" id="back" aria-label="홈으로" hidden>‹</button><b id="bar-title">SOKMAL</b><div class="modebar"><div class="seg" id="mode-top" role="group" aria-label="모드"><button type="button" data-v="exam">입시</button><button type="button" data-v="pro">전문</button></div></div></header>
+<div id="banner"></div>
+<div id="banner2"></div>
+
+<!-- 홈 (앱 첫 화면) -->
+<section class="view" id="v-home" hidden>
+<div class="hub-hello"><p class="eb">더 넓게 읽고, 내 이야기는 놓치지 않게</p><h1>오늘은 무엇을<br>해 볼까요?</h1></div>
+<div id="hub-pick">
+<h3 id="mode-q">어떤 준비를 하고 있나요?</h3>
+<div class="modepick" id="mode-pick">
+<button type="button" data-v="exam"><b>입시 모드</b><span>지정희곡을 정리하고, 입시·오디션 독백을 간단하게 써요.</span></button>
+<button type="button" data-v="pro"><b>전문 모드</b><span>인물의 기질·숨기는 방식까지 열고, 주고받으며 해석을 넓혀요.</span></button>
+</div>
+</div>
+<p class="modenote" id="hub-modeline"></p>
+<div class="tiles">
+<a class="tile key" href="#analysis"><i>해</i><b>해석</b><span class="exam-only">지정희곡 정리하고 독백 후보 찾기</span><span class="pro-only">주고받으며 내 읽기 넓히기</span><em id="hub-left"></em></a>
+<a class="tile key" href="#monologue"><i>독</i><b>독백 만들기</b><span class="exam-only">내 이야기로 입시·오디션 독백을</span><span class="pro-only">기질·숨기는 방식까지 정해 인물의 말로</span></a>
+<a class="tile" href="#image"><i>나</i><b>내 이미지</b><span>나를 말하면, 참고 자료로 보여 줘요</span></a>
+<a class="tile" href="#records"><i>기</i><b>내 기록</b><span>마음에 든 독백과 해석</span><em id="hub-rec"></em></a>
+<a class="tile soft wide" href="#about"><i>S</i><b>SOKMAL 소개</b><span>어떤 서비스인지, 지키는 선</span></a>
+<a class="tile soft wide" href="#admin" id="hub-admin" hidden><i>관</i><b>관리자</b><span>테스터·후기·지표 모아 보기 (송무만 보여요)</span></a>
+</div>
+<div class="card" id="hub-acct" style="margin-top:14px" hidden></div>
+<p class="motto">최고의 결과를 위해 최대한의 도움을 주고, 최소한의 도움을 받는다.</p>
+</section>
+
+<!-- 소개 -->
+<section class="view" id="v-about" hidden>
+<div class="hero">
+<p class="eb">연기·연극·영화·드라마 창작자를 위한 AI 작업실</p>
+<h1>더 넓게 읽고,<br><em>내 이야기는 놓치지 않게.</em></h1>
+<p>작품을 여러 갈래로 읽고, 생각을 한 뼘 더 넓혀요. 그 위에 내 이야기를 얹어 독백과 해석을 만들어요. 답은 AI가 아니라 당신 안에 있어요.</p>
+<a class="btn primary" href="#analysis" style="display:flex;align-items:center;justify-content:center;text-decoration:none">작품 넓게 읽어 보기</a>
+<a class="btn ghost" href="#monologue" style="display:flex;align-items:center;justify-content:center;text-decoration:none">내 이야기로 독백 쓰기</a>
+</div>
+
+<p class="sec">문제</p>
+<h2 style="margin-top:0">모두가 몰래 쓰는 AI, 연기는 모른다</h2>
+<div class="pb">
+<div class="card"><b>AI 독백은 "껍데기"다</b>감정을 이름으로 말하고, 반복하고, 교훈으로 끝납니다.</div>
+<div class="card"><b>해석까지 맡기면 생각이 사라진다</b>정답을 받아 쓰면 모두 비슷한 연기를 하게 됩니다.</div>
+<div class="card"><b>나에게 맞는 독백을 못 찾는다</b>내 인상은 주변에 묻고, 독백은 흩어진 자료를 뒤집니다.</div>
+</div>
+
+<p class="sec">같은 장면, 다른 대사</p>
+<h3>헤어진 연인에게, 그날 전화를 안 받은 이유를 말하는 장면</h3>
+<div class="cmp">
+<div class="bad"><span class="cap">AI 티가 나는 흔한 문장 (예시)</span><q>"그날 너의 전화를 받지 않은 건, 내 마음이 너무 지쳐 있었기 때문이야."</q></div>
+<div class="good"><span class="cap">SOKMAL과 함께 쓴 대사</span><q>"그날 전화. 나 일부러 안 받았어. 네가 괜찮냐고 물으면, 난 또 괜찮다고 해야 하니까. 그거 싫어. 이제."</q></div>
+</div>
+<p style="margin:8px 0 0;font-size:14px;color:var(--muted)">어떻게 말할지는 배우의 몫이에요.</p>
+
+<p class="sec">세 개의 메뉴</p>
+<div class="menu">
+<a href="#monologue" class="key"><b>독백 만들기</b><span>내 이야기로, AI 티 없이</span></a>
+<a href="#analysis" class="key"><b>해석</b><span>정답 대신 여러 갈래와 질문</span></a>
+<a href="#records" style="grid-column:1/-1"><b>내 기록</b><span>마음에 든 독백·해석 보관</span></a>
+</div>
+
+<p class="sec">역할 나눔</p>
+<div class="split">
+<div class="card"><b>AI는 시야를 넓힙니다</b><br><span style="font-size:14px;color:var(--muted)">연기·극작 전문 지식으로 작품을 여러 갈래로 읽고, 반대 읽기와 질문으로 생각을 넓혀요. 독백과 대사는 그 위에서 함께 다듬어요.</span></div>
+<div class="card"><b>배우는 자기 이야기를 지킵니다</b><br><span style="font-size:14px;color:var(--muted)">어떤 해석을 고를지, 어떻게 연기할지는 배우가 정해요. 호흡·강약·감정 전환 같은 표현 방식은 건드리지 않아요. 그건 그 배우만의 것이니까요.</span></div>
+</div>
+
+<p class="sec">지키는 선</p>
+<ul class="lines">
+<li>작품 원문은 싣지 않고, 기존 독백은 요약과 링크로만 안내합니다.</li>
+<li>AI 기반 서비스임을 숨기지 않고, 결과가 AI와 함께 쓴 글임을 알립니다.</li>
+</ul>
+
+<div class="card" style="margin-top:22px;background:var(--soft)">
+<b>첫 테스터 10명을 찾습니다</b>
+<p style="margin:6px 0 12px;font-size:14px;color:#2D3748">입시·오디션을 준비하며 ChatGPT로 독백을 써 봤던 분이면 더 좋아요. 써 보고 솔직하게 말해 주세요.</p>
+<a class="btn primary big" href="#monologue" style="display:flex;align-items:center;justify-content:center;text-decoration:none">지금 써 보기</a>
+</div>
+<div id="about-review"></div>
+<p class="motto">최고의 결과를 위해 최대한의 도움을 주고, 최소한의 도움을 받는다.</p>
+</section>
+
+<!-- ① 이미지 분석 -->
+<section class="view" id="v-image" hidden>
+<h2>내 이미지</h2>
+<p class="lead">사진 대신 나를 말해 주세요. 내가 쓴 말과 고른 답으로 참고 자료를 만들어 드려요. 맞지 않는 건 버려도 돼요.</p>
+<div class="card">
+<h3>무엇을 찾고 있나요?</h3>
+<div class="chip-row" data-group="ipurpose" data-multi="0" data-options="내 이미지에 맞는 독백 찾기,오디션용 독백 고르기,내 이미지와 반대로 도전해 보기,자기소개·프로필 준비,그냥 나를 알아보기" data-default="그냥 나를 알아보기"></div>
+</div>
+<div class="card">
+<h3>나에 대해</h3>
+<label class="f">내가 생각하는 내 이미지</label>
+<textarea id="i-self" placeholder="예) 순해 보이지만 눈빛이 차갑다는 말을 듣는다"></textarea>
+<label class="f">내 성격</label>
+<textarea id="i-char" placeholder="예) 낯을 가리지만 친해지면 장난이 많다. 싫은 소리를 잘 못 한다"></textarea>
+<label class="f">외적인 매력 <span class="hint">얼굴·목소리·몸·분위기 중 내가 아는 것</span></label>
+<textarea id="i-look" placeholder="예) 웃으면 눈이 없어진다. 목소리가 낮아서 전화로는 나이 들어 보인다"></textarea>
+<label class="f">배우로서 내 장점</label>
+<textarea id="i-strength" placeholder="예) 상대 대사를 잘 듣는다. 울컥하는 장면에서 몸이 먼저 반응한다"></textarea>
+<label class="f">주변에서 들은 이야기 <span class="hint">(선택)</span></label>
+<textarea id="i-others" placeholder="친구·선생님·선배가 해 준 말을 그대로 적어 주세요"></textarea>
+<label class="f">하고 싶은 역 <span class="hint">(선택)</span></label>
+<input type="text" id="i-want" placeholder="예) 로맨스 코미디의 친구 역, 스릴러의 가해자">
+<label class="chk"><input type="checkbox" id="i-want-use"> 독백도 이 역·장르 쪽으로 쓰고 싶어요</label>
+</div>
+<div class="card">
+<h3>나를 더 알 수 있는 10가지 <span class="hint">가장 가까운 것 하나씩. 없으면 ＋로 직접 써도 돼요</span></h3>
+<div class="iq"><p class="iq-t"><b>1</b> 처음 만난 사람들이 나에게 가장 자주 하는 말은?</p><div class="chip-row" data-group="q1" data-multi="0" data-options="편안해 보여요,차가워 보여요,밝고 에너지가 넘쳐요,속을 모르겠어요,믿음직해 보여요"></div></div>
+<div class="iq"><p class="iq-t"><b>2</b> 사람들이 나를 기억하는 첫 번째는?</p><div class="chip-row" data-group="q2" data-multi="0" data-options="눈빛,목소리,웃는 얼굴,분위기와 태도,체격과 몸짓"></div></div>
+<div class="iq"><p class="iq-t"><b>3</b> 내 목소리에 가장 가까운 것은?</p><div class="chip-row" data-group="q3" data-multi="0" data-options="낮고 묵직하다,맑고 또렷하다,부드럽고 따뜻하다,허스키하다,빠르고 리듬감 있다"></div></div>
+<div class="iq"><p class="iq-t"><b>4</b> 여럿이 모이면 나는 주로?</p><div class="chip-row" data-group="q4" data-multi="0" data-options="분위기를 띄운다,조용히 듣고 본다,정리하고 이끈다,한마디로 판을 바꾼다,사람들을 챙긴다"></div></div>
+<div class="iq"><p class="iq-t"><b>5</b> 화가 날 때 나는?</p><div class="chip-row" data-group="q5" data-multi="0" data-options="바로 말한다,참다가 한 번에 터진다,웃으면서 넘긴다,차갑게 거리를 둔다,혼자 삭이고 정리한다"></div></div>
+<div class="iq"><p class="iq-t"><b>6</b> 내가 가장 자신 있는 감정 표현은?</p><div class="chip-row" data-group="q6" data-multi="0" data-options="웃음과 유머,분노와 긴장,슬픔과 무너짐,설렘과 사랑,담담함과 절제"></div></div>
+<div class="iq"><p class="iq-t"><b>7</b> 나를 색으로 말하면?</p><div class="chip-row" data-group="q7" data-multi="0" data-options="검정·회색,하양·하늘색,빨강·주황,초록·갈색,보라·남색"></div></div>
+<div class="iq"><p class="iq-t"><b>8</b> 내가 가장 끌리는 인물은?</p><div class="chip-row" data-group="q8" data-multi="0" data-options="상처를 숨긴 사람,세상과 싸우는 사람,웃기지만 짠한 사람,속을 알 수 없는 사람,누군가를 지키려는 사람"></div></div>
+<div class="iq"><p class="iq-t"><b>9</b> 내 몸의 강점에 가장 가까운 것은?</p><div class="chip-row" data-group="q9" data-multi="0" data-options="가만히 있어도 존재감이 있다,움직임이 크고 시원하다,얼굴과 손의 표정이 섬세하다,단단하고 믿음직한 체격,가볍고 날렵하다"></div></div>
+<div class="iq"><p class="iq-t"><b>10</b> 내가 가장 나다워지는 순간은?</p><div class="chip-row" data-group="q10" data-multi="0" data-options="누군가를 설득할 때,혼자 무너질 때,웃기며 분위기를 풀 때,화를 꾹 누를 때,속마음을 털어놓을 때"></div></div>
+</div>
+<button class="btn primary big" id="img-run" type="button">참고 자료 만들기</button>
+<div id="img-out"></div>
+</section>
+
+<!-- ② 독백 만들기 -->
+<section class="view" id="v-monologue" hidden>
+<h2>독백 만들기</h2>
+<p class="lead exam-only">감정·상황·상대를 고르고 내 이야기를 넣으면, 입시 자유 독백을 함께 써요. 초안이 있으면 함께 다듬어요.</p>
+<p class="lead pro-only">기질·숨기는 방식·목표까지 정하면, 작가의 시선으로 인물의 말을 써요. 초안이 있으면 함께 다듬어요.</p>
+<div class="card">
+<h3>쓰는 방식</h3>
+<div class="seg" id="m-mode"><button type="button" class="on" data-v="new">새로 쓰기</button><button type="button" data-v="refine">내 초안 다듬기</button><button type="button" data-v="adapt">번안하기</button></div>
+<label class="f">독백 종류 <span class="hint">무대 입시용과 카메라 앞 오디션용은 말이 달라요</span></label>
+<div class="chip-row" data-group="mtype" data-multi="0" data-options="입시 독백,매체·오디션 독백" data-default="입시 독백"></div>
+<label class="f pro-only">어떤 작가의 시선으로?</label>
+<div class="chip-row pro-only" data-group="writer" data-multi="0" data-options="드라마 작가,영화 작가,희곡 작가" data-default="희곡 작가"></div>
+</div>
+<div class="card">
+<h3>키워드 <span class="hint">적게 고를수록 독백이 또렷해요. ＋로 직접 써도 돼요</span></h3>
+<label class="f">감정 <span class="hint">2개까지 · 두 개면 처음 → 끝으로 써요</span></label>
+<div class="chip-row" data-group="emotion" data-multi="1" data-max="2" data-options="분노,그리움,죄책감,체념,환희,두려움,수치심,미안함,허탈"></div>
+<label class="f">상황 <span class="hint">하나</span></label>
+<div class="chip-row" data-group="situation" data-multi="0" data-options="이별,고백,작별,재회,비밀 폭로,사과,장례 뒤,면접·오디션 전"></div>
+<label class="f">말을 거는 상대 <span class="hint">보통 한 사람 · 두 사람이 있는 장면이면 2명까지 (먼저 고른 사람에게 말해요)</span></label>
+<div class="chip-row" data-group="listener" data-multi="1" data-max="2" data-options="어머니,아버지,연인,친구,낯선 사람,자기 자신"></div>
+<label class="f pro-only">인물의 기질 <span class="hint">2개까지 · 같은 상황도 기질에 따라 말이 달라져요</span></label>
+<div class="chip-row pro-only" data-group="temper" data-multi="1" data-max="2" data-options="날카로운,순한,눈치 보는,수다스러운,과묵한,뻔뻔한,소심한,다정한"></div>
+<label class="f pro-only">숨기는 방식</label>
+<div class="chip-row pro-only" data-group="hide" data-multi="0" data-options="끝까지 말하지 않음,끝에 가서 밝힘,방어가 무너지며 드러남,연기로 감춤"></div>
+<label class="f pro-only">분위기 <span class="hint">하나</span></label>
+<div class="chip-row pro-only" data-group="mood" data-multi="0" data-options="담담한,격한,유머가 섞인,서늘한,조용히 무너지는"></div>
+<label class="f">길이</label>
+<div class="chip-row" data-group="length" data-multi="0" data-options="1분,2분,3분" data-default="1분"></div>
+</div>
+<div class="card">
+<h3>내 이야기</h3>
+<label class="f">내가 겪었거나 상상한 일 <span class="hint">구체적일수록 독백이 나다워져요</span></label>
+<textarea id="m-story" class="big" placeholder="그날의 장소, 들렸던 소리, 상대가 한 말, 내가 했거나 못 한 행동… 떠오르는 대로 적어 주세요"></textarea>
+<label class="f pro-only">이 말로 얻고 싶은 것 · 막는 것 <span class="hint">(선택)</span></label>
+<input type="text" class="pro-only" id="m-goal" placeholder="예) 상대가 더 묻지 못하게 하고 싶다. 들키면 안 되는 일이 있다">
+<label class="f pro-only">말투 정보 <span class="hint">(선택)</span></label>
+<input type="text" class="pro-only" id="m-voice" placeholder="예) 20대 알바생, 평소 존댓말, 화나면 반말">
+<div id="m-adapt-wrap" hidden>
+<label class="f">가져온 문장 <span class="hint">책·웹툰·영화·드라마에서 마음에 든 문장이나 장면</span></label>
+<textarea id="m-src" class="big" maxlength="4000" placeholder="옮겨 온 문장을 붙여 넣어 주세요. 이 문장을 내 말, 내 상황으로 바꿔요. 붙여 넣은 원문은 기록에 저장하지 않아요"></textarea>
+<label class="f">어디서 가져왔나요 <span class="hint">선택 · 출처는 나중에 밝히는 게 좋아요</span></label>
+<input type="text" id="m-src-from" maxlength="80" placeholder="예) 웹툰 〈○○〉 12화">
+</div>
+<div id="m-draft-wrap" hidden>
+<label class="f">내가 쓴 초안</label>
+<textarea id="m-draft" class="big" placeholder="초안을 붙여 넣어 주세요. 먼저 질문을 드리고, 그다음 다듬은 제안을 드려요"></textarea>
+</div>
+<div id="m-memo-wrap" hidden><label class="f">내 이미지 메모 <span class="hint">내 이미지에서 가져왔어요. 고치거나 지워도 돼요</span></label>
+<textarea id="m-image-memo"></textarea></div>
+<label class="f">작품 · 프로젝트 이름 <span class="hint">(기록함에 저장할 때 쓰여요, 선택)</span></label>
+<input type="text" id="m-work" placeholder="예) 오디션용 독백, 〈뻘〉 3장">
+</div>
+<button class="btn primary big" id="m-run" type="button">독백 만들기</button>
+<div id="m-ask"></div>
+<div id="m-out"></div>
+</section>
+
+<!-- ③ 분석 -->
+<section class="view" id="v-analysis" hidden>
+<h2>해석</h2>
+<p class="lead exam-only">지정희곡 본문을 붙여 넣으면 주제·줄거리·인물·독백 후보 구간을 정리해요. 해석은 정답 대신 질문으로 남겨요.</p>
+<p class="lead pro-only">장면을 붙여 넣고 주고받으며 내 읽기를 넓혀요. 정답 대신 다른 갈래와 질문으로 답해요.</p>
+<div class="usage" id="a-usage"></div>
+<div class="card">
+<label class="f"><span class="exam-only">희곡 본문</span><span class="pro-only">장면 · 대본</span> <span class="hint" id="a-count">0자</span></label>
+<textarea id="a-text" class="big"></textarea>
+<div class="exam-only"><label class="f">내가 먼저 본 것 <span class="hint">(선택) 한 줄이면 그 생각에서부터 정리해요</span></label>
+<input type="text" id="a-mine-exam" placeholder="예) 결국 엄마를 떠나지 못하는 이야기 같아요" maxlength="300"></div>
+<label class="chk"><input type="checkbox" id="a-part"> 작품의 일부만 넣었어요</label>
+<label class="f">또는 텍스트 파일(.txt) 불러오기</label>
+<input type="file" id="a-file" accept=".txt,text/plain">
+<label class="f">작품명 <span class="hint">(선택)</span></label>
+<input type="text" id="a-work" placeholder="예) 갈매기">
+<div class="pro-only"><label class="f">인물 <span class="hint">(선택)</span></label>
+<input type="text" id="a-char" placeholder="예) 니나"></div>
+</div>
+<div class="card pro-only">
+<h3>어떻게 시작할까요?</h3>
+<div class="seg" id="a-start"><button type="button" class="on" data-v="mine">내 생각 먼저</button><button type="button" data-v="direct">바로 분석</button></div>
+<div id="a-mine-wrap">
+<p class="hint" style="margin:10px 0 8px">한 줄만 적으면 그 생각을 기준으로 넓혀 드려요.</p>
+<textarea id="a-mine" placeholder="예) 이 인물은 화난 게 아니라 버려질까 봐 무서운 것 같아요" maxlength="1000"></textarea>
+</div>
+</div>
+<button class="btn primary big" id="a-run" type="button"><span class="exam-only">정리하기</span><span class="pro-only">시작하기</span></button>
+<div id="a-out"></div>
+</section>
+
+<!-- ④ 창작의 기록 -->
+<section class="view" id="v-admin" hidden>
+<h2>관리자</h2>
+<p class="lead">베타 테스터의 사용·지표·후기를 모아 봐요. 테스터 초대와 권한(참여 이상)은 Claude 공유 설정에서 해요.</p>
+<div id="adm-body"><div class="note">불러오는 중…</div></div>
+</section>
+
+<section class="view" id="v-records" hidden>
+<h2>내 기록</h2>
+<p class="lead">마음에 든 독백과 해석을 모아 두어요. <span class="cnt" id="r-count2"></span></p>
+<div class="seg" id="r-seg" hidden><button type="button" class="on" data-v="design">설계</button><button type="button" data-v="mood">분위기</button><button type="button" data-v="box">기록함 <span class="cnt" id="r-count"></span></button></div>
+
+<div id="r-design" hidden>
+<div class="card">
+<h3>이야기 설계</h3>
+<p class="hint" style="margin:0 0 8px">희곡·대본에 꼭 들어가는 요소를 적어요. 입력한 내용은 자동으로 임시 저장돼요.</p>
+<label class="f">작품명 (가제)</label>
+<input type="text" id="d-work">
+<label class="f">형식</label>
+<div class="chip-row" data-group="dform" data-multi="0" data-options="희곡,영화,드라마,단편"></div>
+<label class="f">어떤 이야기를 만들고 싶나요?</label>
+<textarea id="d-premise" placeholder="한두 문장이어도 좋아요"></textarea>
+<label class="f">말하고 싶은 것 (주제)</label>
+<textarea id="d-theme"></textarea>
+<label class="f">인물 <span class="hint">주인공이 원하는 것, 막는 것, 숨기는 것</span></label>
+<textarea id="d-characters"></textarea>
+<label class="f">갈등 <span class="hint">누가·무엇이 가로막나</span></label>
+<textarea id="d-conflict"></textarea>
+<label class="f">배경 <span class="hint">때와 장소, 분위기</span></label>
+<textarea id="d-setting"></textarea>
+<label class="f">사건 <span class="hint">발단 · 전개 · 절정 · 결말, 중요한 사건들</span></label>
+<textarea id="d-events"></textarea>
+<label class="f">소재 <span class="hint">이야기를 이루는 물건·직업·소문 등</span></label>
+<textarea id="d-material"></textarea>
+<label class="f">떡밥 <span class="hint">나중에 회수할 복선</span></label>
+<textarea id="d-plants"></textarea>
+</div>
+<button class="btn big" id="d-check" type="button">빠진 부분 점검하기 (AI)</button>
+<button class="btn primary big" id="d-save" type="button">기록함에 나눠 저장</button>
+<button class="btn big danger" id="d-clear" type="button">설계 비우기</button>
+<div id="d-out"></div>
+</div>
+
+<div id="r-mood" hidden>
+<div class="note">사진·영상 파일은 저장하지 않아요. AI가 읽은 결과만 기록으로 남길 수 있어요.</div>
+<div class="card">
+<h3>분위기 레퍼런스 넣기</h3>
+<div id="mood-picker"></div>
+<label class="f">어떤 분위기·느낌으로 쓰고 싶나요?</label>
+<textarea id="mood-note" placeholder="예) 비 온 뒤 새벽의 병원 복도처럼, 조용한데 불안한 느낌"></textarea>
+<label class="f">작품 · 프로젝트 이름 <span class="hint">(선택)</span></label>
+<input type="text" id="mood-work">
+</div>
+<button class="btn primary big" id="mood-run" type="button">분위기 구체화하기</button>
+<div id="mood-out"></div>
+</div>
+
+<div id="r-box">
+<div class="card">
+<input type="text" id="b-search" placeholder="기록 검색 (제목·내용·태그·작품)">
+<div class="chip-row" id="b-kinds" style="margin-top:10px"></div>
+<label class="f">작품으로 좁히기</label>
+<select id="b-work"><option value="">전체 작품</option></select>
+</div>
+<button class="btn primary big" id="b-new" type="button">＋ 새 기록 쓰기</button>
+<div class="card" id="b-form" hidden>
+<h3 id="b-form-title">새 기록</h3>
+<label class="f">종류</label>
+<div class="chip-row" data-group="bkind" data-multi="0" data-options="독백,분석,메모"></div>
+<label class="f">작품</label>
+<input type="text" id="b-f-work" list="b-works" placeholder="작품·프로젝트 이름">
+<datalist id="b-works"></datalist>
+<label class="f">제목</label>
+<input type="text" id="b-f-title">
+<label class="f">내용</label>
+<textarea id="b-f-body" class="big"></textarea>
+<label class="f">태그 <span class="hint">쉼표로 구분</span></label>
+<input type="text" id="b-f-tags" placeholder="예) 1막, 어머니, 비밀">
+<div class="out-acts"><button class="btn primary" id="b-f-save" type="button">저장</button><button class="btn" id="b-f-cancel" type="button">취소</button></div>
+</div>
+<div id="b-list"></div>
+</div>
+</section>
+</div>

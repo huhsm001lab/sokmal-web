@@ -1,0 +1,21 @@
+node_modules/
+.next/
+.env
+.env.local
+*.tsbuildinfo
+next-env.d.ts
+e2e/out/
+sokmal-web.zip
+local-data/
+
+# 공개 저장소에 올리지 않는 것 (송무의 압축 파일에만 있음)
+# 프롬프트 원문과 원문이 들어 있는 시제품·도구·테스트
+lib/prompts/sokmal-prompts.js
+legacy/index.html
+scripts/extract-prompts.mjs
+tests/prompt-parity.test.ts
+# 기획·사업 문서
+prd.md
+SOKMAL-개발.md
+CLAUDE.md
+docs/

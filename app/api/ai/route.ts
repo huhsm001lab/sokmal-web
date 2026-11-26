@@ -6,6 +6,7 @@ import { costOf } from '@/lib/budget';
 import { aiNotReady, config } from '@/lib/config';
 import { kstDay, kstMonthStartIso, LIMITS, type CounterKey } from '@/lib/limits';
 import { BadInput, buildJob, isMetaReply, type Job } from '@/lib/prompts/build';
+import { inviteOk } from '@/lib/invite';
 import { getStore, json, userIdOf } from '@/lib/server';
 import type { CallLog } from '@/lib/data/types';
 
@@ -31,6 +32,7 @@ export async function POST(req: Request) {
     console.error('[sokmal] AI 설정이 안 됨:', notReady ?? '저장소 없음');
     return json({ error: 'not_configured' }, 503);
   }
+  if (!inviteOk(req)) return json({ error: 'invite_required' }, 403);
   const uid = await userIdOf(req);
   if (!uid) return json({ error: 'session_expired' }, 401);
 

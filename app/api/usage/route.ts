@@ -2,6 +2,7 @@
 import { aiNotReady, config } from '@/lib/config';
 import { kstDay, LIMITS, type CounterKey } from '@/lib/limits';
 import { usingExamplePrompts } from '@/lib/prompts/build';
+import { inviteOk } from '@/lib/invite';
 import { getStore, json, userIdOf } from '@/lib/server';
 
 export const runtime = 'nodejs';
@@ -11,6 +12,7 @@ const KEYS: CounterKey[] = ['exam', 'pro', 'mono'];
 
 export async function GET(req: Request) {
   const store = getStore();
+  if (!inviteOk(req)) return json({ ready: false, error: 'invite_required' }, 403);
   if (!store) return json({ ready: false, error: 'not_configured' }, 503);
   const uid = await userIdOf(req);
   if (!uid) return json({ ready: false, error: 'session_expired' }, 401);
@@ -20,6 +22,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const store = getStore();
+  if (!inviteOk(req)) return json({ error: 'invite_required' }, 403);
   if (!store) return json({ error: 'not_configured' }, 503);
   const uid = await userIdOf(req);
   if (!uid) return json({ error: 'session_expired' }, 401);

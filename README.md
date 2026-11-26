@@ -58,6 +58,9 @@ npm run build && npm run e2e
 
 > 이번 작업에서는 키가 없어서 **실제 Anthropic 호출과 Supabase 연결은 돌려 보지 못했어요.** 위 6번으로 처음 확인해 주세요.
 
+## 초대 코드
+`SOKMAL_INVITE_CODES`(Vercel 환경변수)에 쉼표로 코드를 적으면, 첫 화면에 초대 코드 창이 뜨고 그 코드를 넣은 사람만 AI를 쓸 수 있어요(서버가 확인). 대소문자·앞뒤 공백은 무시해요. 코드를 빼면 그 사람은 다음 요청부터 막혀요. 고친 뒤에는 Vercel에서 다시 배포해야 반영돼요. 비워 두면 초대 코드 없이 열려요.
+
 ## 공개 저장소에 없는 파일
 프롬프트 원문과 기획 문서는 공개 저장소에 올리지 않아요. 송무의 압축 파일에만 있어요.
 - `lib/prompts/sokmal-prompts.js`(프롬프트 원문), `legacy/index.html`(시제품 원본), `scripts/extract-prompts.mjs`, `tests/prompt-parity.test.ts`(원문 비교 테스트)

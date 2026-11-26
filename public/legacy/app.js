@@ -76,7 +76,7 @@ function errCopy(e){
   const c=e&&e.code;
   return ({cancelled:'중단했어요.',
     /* 11-26 이식: 서버 AI용 오류 */
-    daily_limit:'오늘 쓸 수 있는 횟수를 모두 썼어요. 내일 다시 열려요.',busy:'지금 AI를 쓰는 사람이 많아요. 조금 뒤에 다시 눌러 주세요.',budget:'이번 달에 쓸 수 있는 AI 사용량이 다 찼어요. 운영자에게 알려 주세요.',not_configured:'AI 설정이 아직 안 됐어요. 운영자에게 알려 주세요.',network:'연결이 끊겼어요. 인터넷 연결을 확인하고 다시 눌러 주세요.',bad_request:'입력을 처리하지 못했어요. 내용을 확인하고 다시 시도해 주세요.',
+    invite_required:'초대 코드가 필요해요. 첫 화면에서 초대 코드를 넣어 주세요.',daily_limit:'오늘 쓸 수 있는 횟수를 모두 썼어요. 내일 다시 열려요.',busy:'지금 AI를 쓰는 사람이 많아요. 조금 뒤에 다시 눌러 주세요.',budget:'이번 달에 쓸 수 있는 AI 사용량이 다 찼어요. 운영자에게 알려 주세요.',not_configured:'AI 설정이 아직 안 됐어요. 운영자에게 알려 주세요.',network:'연결이 끊겼어요. 인터넷 연결을 확인하고 다시 눌러 주세요.',bad_request:'입력을 처리하지 못했어요. 내용을 확인하고 다시 시도해 주세요.',
     not_granted:'이 화면에서는 AI 사용이 허용되지 않았어요.',sampling_disabled:'이 계정에서는 AI를 쓸 수 없어요.',rate_limited:'지금 쓰고 있는 Claude 계정의 AI 사용량이 잠시 다 찼어요. SOKMAL의 하루 횟수와는 별개예요. 조금 뒤에 다시 눌러 주세요.',image_rejected:'이 사진은 읽지 못했어요. 다른 사진으로 해 주세요.',images_unavailable:'이 화면에서는 사진 분석을 쓸 수 없어요.',session_expired:'다시 로그인해 주세요.',refused:'AI가 이 입력은 처리하지 못했어요. 내용을 바꿔서 다시 시도해 주세요.',empty_completion:'답이 비어 있어요. 내용을 조금 더 적고 다시 시도해 주세요.',prompt_too_large:'글이 너무 길어요. 막·장면 단위로 나눠 넣어 주세요.'})[c]||'문제가 생겼어요. 잠시 뒤에 다시 눌러 주세요.';
 }
 /* 11-26 이식: 프롬프트는 서버가 만든다. 브라우저는 spec(무슨 기능 + 입력값)만 보낸다 */
@@ -104,8 +104,9 @@ const ymd=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()
    AI는 /api/ai, 하루 횟수는 /api/usage. 사용자 구분은 app/AuthBridge.tsx가 만든 window.SokmalAuth(익명 로그인 + 이메일 연결) */
 const Api={ready:false,auth:null,
   async waitAuth(){for(let i=0;i<200&&!window.SokmalAuth;i++)await new Promise(r=>setTimeout(r,25));return window.SokmalAuth||null;},
-  async init(){this.auth=await this.waitAuth();if(this.auth){try{await this.auth.ready;}catch(e){}}const r=await this.usage();this.ready=!!(r&&r.ready);this.mock=!!(r&&r.mock);this.examplePrompts=!!(r&&r.examplePrompts);},
-  async headers(){const hd={'content-type':'application/json'};if(this.auth){try{Object.assign(hd,await this.auth.headers());}catch(e){}}return hd;},
+  async init(){this.auth=await this.waitAuth();if(this.auth){try{await this.auth.ready;}catch(e){}}const r=await this.usage();this.needInvite=!!(r&&r.error==='invite_required');this.ready=!!(r&&r.ready);this.mock=!!(r&&r.mock);this.examplePrompts=!!(r&&r.examplePrompts);},
+  inviteCode(){try{return localStorage.getItem('sokmal.invite')||'';}catch(e){return '';}},
+  async headers(){const hd={'content-type':'application/json'};const ic=this.inviteCode();if(ic)hd['x-sokmal-invite']=ic;if(this.auth){try{Object.assign(hd,await this.auth.headers());}catch(e){}}return hd;},
   async usage(){try{const res=await fetch('/api/usage',{headers:await this.headers(),cache:'no-store'});const j=await res.json();if(j&&j.usage)Usage.set(j.usage);return j;}catch(e){return null;}},
   hit(key){this.headers().then(hd=>fetch('/api/usage',{method:'POST',headers:hd,body:JSON.stringify({hit:key})})).then(r=>r.json()).then(j=>{if(j&&j.usage)Usage.set(j.usage);}).catch(()=>{});},
   /* spec을 보내고 글자를 흘려받는다. 반환 {text,truncated,base}. 실패하면 {code,text?}를 던진다(원래 window.claude sample과 같은 모양) */
@@ -658,11 +659,26 @@ const Acct={paint(){const host=$('#hub-acct');if(!host)return;const A=Api.auth;i
   host.replaceChildren(h('b',{},'이메일로 이어 쓰기 (선택)'),h('p',{style:P},'지금은 이 기기로만 알아봐요. 이메일을 연결하면 다른 기기에서도 같은 계정으로 이어 써요. 기록(저장함)은 아직 이 기기에만 저장돼요.'),inp,h('div',{class:'out-acts'},btn),msg);
 }};
 
+/* ---------- 초대 코드 (11-26: 송무가 준 코드를 넣은 사람만 AI 사용. 서버가 확인) ---------- */
+const Invite={show(){const host=$('#banner');const old=$('#invite-card');if(old)old.remove();
+  const inp=h('input',{type:'text',id:'invite-code',placeholder:'초대 코드',autocomplete:'off',autocapitalize:'off',spellcheck:'false',maxlength:'100'});
+  const btn=h('button',{type:'button',class:'btn primary'},'시작하기');const msg=h('div',{class:'adm-leg',style:'margin-top:6px'});
+  const go=async()=>{const v=inp.value.trim();if(!v){msg.textContent='초대 코드를 넣어 주세요.';return;}btn.disabled=true;msg.textContent='확인하는 중…';
+    let ok=false;try{const r=await fetch('/api/invite',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:v})});ok=r.ok&&(await r.json()).ok;}catch(e){}
+    btn.disabled=false;if(!ok){msg.textContent='맞지 않는 코드예요. 받은 코드를 다시 확인해 주세요.';inp.focus();return;}
+    try{localStorage.setItem('sokmal.invite',v);}catch(e){}card.remove();toast('반가워요. 이제 시작할 수 있어요');await Api.init();if(!Api.ready)$('#banner').prepend(h('div',{class:'note warn'},'이 화면에서는 AI 답변을 쓸 수 없어요. 양식은 볼 수 있지만 분석·독백 만들기는 동작하지 않아요.'));};
+  btn.addEventListener('click',go);inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go();}});
+  const card=h('div',{class:'card',id:'invite-card',style:'margin:14px 0'},h('h3',{style:'margin:0 0 6px'},'초대 코드'),
+    h('p',{style:'margin:0 0 10px;font-size:14px;color:#2D3748'},'지금은 초대받은 분만 쓸 수 있어요. 받은 초대 코드를 넣어 주세요.'),
+    h('label',{for:'invite-code',class:'adm-leg'},'초대 코드'),inp,h('div',{class:'out-acts'},btn),msg);
+  host.prepend(card);location.hash='#home';inp.focus({preventScroll:true});}};
+
 /* ---------- 시작 ---------- */
 route();
 (async()=>{
   await Api.init();
-  if(!Api.ready)$('#banner').prepend(h('div',{class:'note warn'},'이 화면에서는 AI 답변을 쓸 수 없어요. 양식은 볼 수 있지만 분석·독백 만들기는 동작하지 않아요.'));
+  if(Api.needInvite){try{localStorage.removeItem('sokmal.invite');}catch(e){}Invite.show();}
+  else if(!Api.ready)$('#banner').prepend(h('div',{class:'note warn'},'이 화면에서는 AI 답변을 쓸 수 없어요. 양식은 볼 수 있지만 분석·독백 만들기는 동작하지 않아요.'));
   else if(Api.examplePrompts&&!Api.mock)$('#banner').prepend(h('div',{class:'note warn',id:'example-note'},'예시 프롬프트로 돌고 있어요. 답의 품질은 실제 SOKMAL과 달라요.'));
   else if(Api.mock)$('#banner').prepend(h('div',{class:'note warn',id:'mock-note'},'시험 모드: AI 대신 정해 둔 가짜 답이 나와요. 진짜 AI로 바꾸는 법은 「바탕화면에서 열기」 안내서에 있어요.'));
   if(Api.auth){Acct.paint();if(Api.auth.onChange)Api.auth.onChange(()=>{Acct.paint();Api.usage();});}

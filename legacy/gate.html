@@ -1,0 +1,16 @@
+<!-- 입장 화면 (11-26): 앱보다 먼저 보이는 따로 떨어진 첫 화면. 지금은 초대 코드, 나중에 로그인이 이 자리에 들어감 -->
+<main id="gate" aria-labelledby="gate-title">
+<div class="gate-in">
+<div class="gate-mark" aria-hidden="true">속</div>
+<h1 id="gate-title" class="gate-name">SOKMAL 속말</h1>
+<p class="gate-tag">더 넓게 읽고, 내 이야기는 놓치지 않게</p>
+<p class="gate-lead">배우와 창작자를 위한 AI 작업실이에요.<br>지금은 초대받은 분만 참여할 수 있어요.</p>
+<form id="gate-form" class="gate-form" novalidate>
+<label for="gate-code" class="gate-label">초대 코드</label>
+<input type="text" id="gate-code" name="code" inputmode="numeric" pattern="[0-9]*" placeholder="숫자 6자리" autocomplete="off" maxlength="6" required>
+<button type="submit" class="btn primary gate-go" id="gate-go">입장하기</button>
+<p id="gate-msg" class="gate-msg" role="status" aria-live="polite"></p>
+</form>
+<p class="gate-foot">초대 코드는 SOKMAL 팀에게 받을 수 있어요.</p>
+</div>
+</main>

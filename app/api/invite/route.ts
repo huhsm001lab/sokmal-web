@@ -1,5 +1,5 @@
-// 초대 코드 확인 (첫 화면의 초대 코드 창에서 부름)
-import { inviteOn, inviteValid } from '@/lib/invite';
+// 초대 코드 확인 (입장 화면에서 부름)
+import { inviteBlocked, inviteOn, inviteValid, noteInviteFail } from '@/lib/invite';
 import { json } from '@/lib/server';
 
 export const runtime = 'nodejs';
@@ -11,6 +11,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   if (!inviteOn()) return json({ ok: true, required: false });
+  if (inviteBlocked(req)) return json({ ok: false, error: 'too_many' }, 429);
   let code: unknown;
   try {
     code = (await req.json())?.code;
@@ -18,7 +19,8 @@ export async function POST(req: Request) {
     return json({ ok: false }, 400);
   }
   if (typeof code === 'string' && inviteValid(code)) return json({ ok: true });
-  // 아무 코드나 빠르게 대입해 보는 걸 늦추려고 조금 기다렸다 답함
+  noteInviteFail(req);
+  // 아무 숫자나 빠르게 대입해 보는 걸 늦추려고 조금 기다렸다 답함
   await new Promise((r) => setTimeout(r, 800));
-  return json({ ok: false }, 403);
+  return json({ ok: false, error: inviteBlocked(req) ? 'too_many' : 'wrong' }, 403);
 }

@@ -659,25 +659,28 @@ const Acct={paint(){const host=$('#hub-acct');if(!host)return;const A=Api.auth;i
   host.replaceChildren(h('b',{},'이메일로 이어 쓰기 (선택)'),h('p',{style:P},'지금은 이 기기로만 알아봐요. 이메일을 연결하면 다른 기기에서도 같은 계정으로 이어 써요. 기록(저장함)은 아직 이 기기에만 저장돼요.'),inp,h('div',{class:'out-acts'},btn),msg);
 }};
 
-/* ---------- 초대 코드 (11-26: 송무가 준 코드를 넣은 사람만 AI 사용. 서버가 확인) ---------- */
-const Invite={show(){const host=$('#banner');const old=$('#invite-card');if(old)old.remove();
-  const inp=h('input',{type:'text',id:'invite-code',placeholder:'초대 코드',autocomplete:'off',autocapitalize:'off',spellcheck:'false',maxlength:'100'});
-  const btn=h('button',{type:'button',class:'btn primary'},'시작하기');const msg=h('div',{class:'adm-leg',style:'margin-top:6px'});
-  const go=async()=>{const v=inp.value.trim();if(!v){msg.textContent='초대 코드를 넣어 주세요.';return;}btn.disabled=true;msg.textContent='확인하는 중…';
-    let ok=false;try{const r=await fetch('/api/invite',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:v})});ok=r.ok&&(await r.json()).ok;}catch(e){}
-    btn.disabled=false;if(!ok){msg.textContent='맞지 않는 코드예요. 받은 코드를 다시 확인해 주세요.';inp.focus();return;}
-    try{localStorage.setItem('sokmal.invite',v);}catch(e){}card.remove();toast('반가워요. 이제 시작할 수 있어요');await Api.init();if(!Api.ready)$('#banner').prepend(h('div',{class:'note warn'},'이 화면에서는 AI 답변을 쓸 수 없어요. 양식은 볼 수 있지만 분석·독백 만들기는 동작하지 않아요.'));};
-  btn.addEventListener('click',go);inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go();}});
-  const card=h('div',{class:'card',id:'invite-card',style:'margin:14px 0'},h('h3',{style:'margin:0 0 6px'},'초대 코드'),
-    h('p',{style:'margin:0 0 10px;font-size:14px;color:#2D3748'},'지금은 초대받은 분만 쓸 수 있어요. 받은 초대 코드를 넣어 주세요.'),
-    h('label',{for:'invite-code',class:'adm-leg'},'초대 코드'),inp,h('div',{class:'out-acts'},btn),msg);
-  host.prepend(card);location.hash='#home';inp.focus({preventScroll:true});}};
+/* ---------- 입장 화면: 초대 코드 (11-26). 코드를 넣기 전에는 앱이 보이지 않음. 나중에 로그인이 이 자리에 들어감 ---------- */
+const Invite={wired:false,
+  lock(){document.documentElement.classList.add('gated');window.scrollTo(0,0);const i=$('#gate-code');if(i)i.focus({preventScroll:true});},
+  unlock(){document.documentElement.classList.remove('gated');},
+  show(){this.lock();if(this.wired)return;this.wired=true;
+    const form=$('#gate-form'),inp=$('#gate-code'),btn=$('#gate-go'),msg=$('#gate-msg');
+    inp.addEventListener('input',()=>{const d=inp.value.replace(/\D/g,'').slice(0,6);if(d!==inp.value)inp.value=d;msg.textContent='';});
+    form.addEventListener('submit',async e=>{e.preventDefault();const v=inp.value.trim();
+      if(!/^\d{6}$/.test(v)){msg.textContent='숫자 6자리를 넣어 주세요.';inp.focus();return;}
+      btn.disabled=true;msg.textContent='확인하는 중…';let ok=false,err='';
+      try{const r=await fetch('/api/invite',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:v})});const j=await r.json();ok=r.ok&&j.ok;err=j.error||'';}catch(x){err='network';}
+      btn.disabled=false;
+      if(!ok){msg.textContent=err==='too_many'?'여러 번 틀려서 잠시 막혔어요. 15분 뒤에 다시 넣어 주세요.':err==='network'?'연결이 끊겼어요. 인터넷을 확인하고 다시 눌러 주세요.':'맞지 않는 코드예요. 받은 숫자를 다시 확인해 주세요.';inp.select();return;}
+      try{localStorage.setItem('sokmal.invite',v);}catch(x){}
+      msg.textContent='';inp.value='';location.hash='#home';Invite.unlock();toast('반가워요. 이제 시작할 수 있어요');
+      await Api.init();if(!Api.ready)$('#banner').prepend(h('div',{class:'note warn'},'이 화면에서는 AI 답변을 쓸 수 없어요. 양식은 볼 수 있지만 분석·독백 만들기는 동작하지 않아요.'));});}};
 
 /* ---------- 시작 ---------- */
 route();
 (async()=>{
   await Api.init();
-  if(Api.needInvite){try{localStorage.removeItem('sokmal.invite');}catch(e){}Invite.show();}
+  if(Api.needInvite){try{localStorage.removeItem('sokmal.invite');}catch(e){}Invite.show();} /* 저장된 코드가 없거나 더는 맞지 않음 → 입장 화면 */
   else if(!Api.ready)$('#banner').prepend(h('div',{class:'note warn'},'이 화면에서는 AI 답변을 쓸 수 없어요. 양식은 볼 수 있지만 분석·독백 만들기는 동작하지 않아요.'));
   else if(Api.examplePrompts&&!Api.mock)$('#banner').prepend(h('div',{class:'note warn',id:'example-note'},'예시 프롬프트로 돌고 있어요. 답의 품질은 실제 SOKMAL과 달라요.'));
   else if(Api.mock)$('#banner').prepend(h('div',{class:'note warn',id:'mock-note'},'시험 모드: AI 대신 정해 둔 가짜 답이 나와요. 진짜 AI로 바꾸는 법은 「바탕화면에서 열기」 안내서에 있어요.'));

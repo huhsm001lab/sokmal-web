@@ -30,6 +30,15 @@ export function aiErrorCode(e: unknown): string {
   return 'error';
 }
 
+/** 관리자 기록용 오류 원인: 상태 코드·종류 + 짧은 설명. 키처럼 보이는 글자는 가린다 */
+export function aiErrorDetail(e: unknown): string {
+  const o = (e && typeof e === 'object' ? e : {}) as { status?: unknown; code?: unknown; type?: unknown; message?: unknown };
+  const head = [o.status, o.code || o.type].filter((x) => x != null && x !== '').join(' ');
+  const msg = typeof o.message === 'string' ? o.message : e instanceof Error ? e.message : String(e);
+  const safe = msg.replace(/(sk|rk|pk)-[A-Za-z0-9_*\-]{4,}/g, '$1-…').replace(/\s+/g, ' ').trim();
+  return (head ? head + ' · ' : '') + safe.slice(0, 200);
+}
+
 export async function runAi(job: Job, signal: AbortSignal, onText: (delta: string) => void): Promise<AiResult> {
   const model = modelFor(job.tier);
   if (config.mockAi) return mockRun(job, model, signal, onText);

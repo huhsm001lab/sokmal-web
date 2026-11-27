@@ -127,3 +127,13 @@ describe('DB 없는 운영', () => {
     expect(await s.userIdOf(new Request('http://x/', { headers: { 'x-sokmal-invite': '111111' } }))).toBeNull();
   });
 });
+
+describe('오류 원인 기록 (11-27)', () => {
+  it('상태·종류와 설명을 남기고 키는 가림', async () => {
+    const { aiErrorDetail } = await import('@/lib/ai');
+    const e = Object.assign(new Error('Incorrect API key provided: sk-proj-abcd1234efgh. You can find your API key at …'), { status: 401, code: 'invalid_api_key' });
+    const d = aiErrorDetail(e);
+    expect(d.startsWith('401 invalid_api_key · Incorrect API key provided: sk-…')).toBe(true);
+    expect(d).not.toContain('abcd1234');
+  });
+});

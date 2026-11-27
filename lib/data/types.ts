@@ -14,6 +14,8 @@ export type CallLog = {
   cacheWriteTokens: number;
   cacheReadTokens: number;
   costKrw: number;
+  /** 오류일 때 원인 (예: "401 invalid_api_key …"). 키 같은 비밀은 가려서 남김 */
+  detail?: string;
 };
 
 /** 테스터 한 명의 의견·후기 문서 (시제품 feedback/<사용자> 와 같은 모양) */

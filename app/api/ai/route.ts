@@ -1,6 +1,6 @@
 // AI 호출 하나. 순서: 사용자 확인 → 입력 검사·프롬프트 조립 → 월 예산 확인 → 하루 횟수 예약 → 스트리밍 → 비용 기록
 // 응답은 한 줄에 JSON 하나씩(NDJSON): {"t":"글자"} … 마지막에 {"done":true,…} 또는 {"error":"코드"}
-import { aiErrorCode, pricesKnown, runAi, type AiResult } from '@/lib/ai';
+import { aiErrorCode, aiErrorDetail, pricesKnown, runAi, type AiResult } from '@/lib/ai';
 import { toKrw } from '@/lib/budget';
 import { aiNotReady, appBudgetActive, config, modelFor } from '@/lib/config';
 import { kstDay, kstMonthStartIso, LIMITS, type CounterKey } from '@/lib/limits';
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
         }
       };
       let text = '';
-      const log = (status: CallLog['status'], r: Pick<AiResult, 'tokens' | 'usd'> | null, usedModel: string) => {
+      const log = (status: CallLog['status'], r: Pick<AiResult, 'tokens' | 'usd'> | null, usedModel: string, detail?: string) => {
         const tokens = r?.tokens ?? { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 };
         const krw = r?.usd != null && config.usdKrw > 0 ? toKrw(r.usd, config.usdKrw) : 0;
         return store
@@ -99,6 +99,7 @@ export async function POST(req: Request) {
             cacheWriteTokens: tokens.cacheWrite,
             cacheReadTokens: tokens.cacheRead,
             costKrw: krw,
+            ...(detail ? { detail } : {}),
           })
           .catch((e) => console.error('[sokmal] 비용 기록 실패', e));
       };
@@ -123,7 +124,7 @@ export async function POST(req: Request) {
         if (code !== 'cancelled') console.error('[sokmal] AI 호출 실패', e);
         await refund();
         // 중단·오류 때는 사용량을 알 수 없어 토큰 0으로 기록된다 (비용이 조금 덜 잡힐 수 있음)
-        await log(code === 'cancelled' ? 'cancelled' : 'error', null, model);
+        await log(code === 'cancelled' ? 'cancelled' : 'error', null, model, code === 'cancelled' ? undefined : aiErrorDetail(e));
         send({ error: code, text });
       } finally {
         closed = true;

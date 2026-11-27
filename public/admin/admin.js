@@ -156,7 +156,7 @@
           h('td', {}, timeOf(c.at)), h('td', {}, who(c.uid)), h('td', {}, c.feature), h('td', {}, c.model),
           h('td', { class: 'num' }, (c.inputTokens + c.cacheReadTokens + c.cacheWriteTokens).toLocaleString('ko-KR')),
           h('td', { class: 'num' }, (c.outputTokens || 0).toLocaleString('ko-KR')),
-          h('td', { class: 'num' }, won(c.costKrw)), h('td', {}, STATUS[c.status] || c.status)))))) : h('div', { class: 'adm-leg' }, '아직 AI 호출이 없어요.'));
+          h('td', { class: 'num' }, won(c.costKrw)), h('td', { style: c.detail ? 'white-space:normal;min-width:220px' : '' }, STATUS[c.status] || c.status, c.detail ? h('div', { class: 'adm-leg' }, c.detail) : null)))))) : h('div', { class: 'adm-leg' }, '아직 AI 호출이 없어요.'));
 
     /* 지표 3문항 (시제품과 같은 막대) */
     const COL = ['#2F4A7A', '#8FA3C4', '#D9DEE7'];
@@ -252,7 +252,7 @@
     const csvCalls = h('button', { type: 'button', class: 'btn' }, 'AI 호출 CSV');
     csvCalls.addEventListener('click', () => {
       const rows = [['시간', '테스터', '코드', '기능', '모델', '입력', '캐시 읽기', '캐시 쓰기', '출력', '비용(원)', '결과']];
-      (d.calls || []).forEach((c) => { const t = byUid[c.uid]; rows.push([c.at, who(c.uid), t && t.code ? t.code : '', c.feature, c.model, c.inputTokens, c.cacheReadTokens, c.cacheWriteTokens, c.outputTokens, c.costKrw, STATUS[c.status] || c.status]); });
+      (d.calls || []).forEach((c) => { const t = byUid[c.uid]; rows.push([c.at, who(c.uid), t && t.code ? t.code : '', c.feature, c.model, c.inputTokens, c.cacheReadTokens, c.cacheWriteTokens, c.outputTokens, c.costKrw, (STATUS[c.status] || c.status) + (c.detail ? ' · ' + c.detail : '')]); });
       download('sokmal-ai-calls-' + today + '.csv', rows);
     });
 

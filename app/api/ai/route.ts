@@ -5,6 +5,7 @@ import { toKrw } from '@/lib/budget';
 import { aiNotReady, appBudgetActive, config, modelFor } from '@/lib/config';
 import { kstDay, kstMonthStartIso, LIMITS, type CounterKey } from '@/lib/limits';
 import { BadInput, buildJob, isMetaReply, type Job } from '@/lib/prompts/build';
+import { DEFAULT_SWITCHES } from '@/lib/prompts/switches';
 import { inviteOk } from '@/lib/invite';
 import { getStore, inviteCodeOf, json, userIdOf } from '@/lib/server';
 import type { CallLog } from '@/lib/data/types';
@@ -42,7 +43,8 @@ export async function POST(req: Request) {
 
   let job: Job;
   try {
-    job = buildJob(body, left);
+    const sw = await store.getSwitches().catch(() => DEFAULT_SWITCHES);
+    job = buildJob(body, left, sw);
   } catch (e) {
     if (e instanceof BadInput) return json({ error: e.code }, e.code === 'prompt_too_large' ? 413 : 400);
     throw e;

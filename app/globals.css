@@ -219,3 +219,14 @@ html.gated .wrap{display:none}
 /* 연기 대화 (화면만, 11-27) */
 .talk-soon{margin:0 0 12px;padding:10px 14px;border-radius:12px;background:#FFF1E8;color:#9A3412;font-size:14px;font-weight:700}
 .talk-log:empty{display:none}
+/* 관리자: 독백 지침 스위치 (11-27) */
+.sw-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);cursor:pointer}
+.sw-card h3+p+.sw-row{border-top:0}
+.sw-row input{appearance:none;-webkit-appearance:none;flex:none;width:46px;height:28px;border-radius:14px;background:var(--line);position:relative;margin:0;cursor:pointer;transition:background .15s}
+.sw-row input::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .15s}
+.sw-row input:checked{background:var(--navy)}
+.sw-row input:checked::after{transform:translateX(18px)}
+.sw-row input:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+.sw-txt{display:flex;flex-direction:column;flex:1;min-width:0}
+.sw-txt span{font-size:12px;color:var(--muted)}
+.sw-state{font-size:13px;color:var(--navy);white-space:nowrap}

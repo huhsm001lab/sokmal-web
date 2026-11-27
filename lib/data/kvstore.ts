@@ -9,6 +9,8 @@
 //   fb:<uid>          값    의견·후기 문서(JSON)
 //   admin:names       해시  uid → 이름 메모
 //   admin:approved    해시  uid → '1' (랜딩에 쓸 후기)
+//   admin:switches    값    관리자 스위치 JSON (독백 지침·예시 켜기/끄기)
+import { cleanSwitches, type PromptSwitches } from '../prompts/switches';
 import type { CounterKey } from '../limits';
 import type { Kv } from './kv';
 import { emptyUsage, type AdminSnapshot, type CallLog, type DataStore, type FeedbackDoc, type TesterRow } from './types';
@@ -107,6 +109,13 @@ export class KvStore implements DataStore {
   async setApproved(uid: string, approved: boolean) {
     if (approved) await this.kv.hset('admin:approved', { [uid]: '1' });
     else await this.kv.hdel('admin:approved', uid);
+  }
+
+  async getSwitches(): Promise<PromptSwitches> {
+    return cleanSwitches(parse<unknown>(await this.kv.get('admin:switches')));
+  }
+  async setSwitches(s: PromptSwitches) {
+    await this.kv.set('admin:switches', JSON.stringify(cleanSwitches(s)));
   }
 
   async adminSnapshot(callLimit = 1000): Promise<AdminSnapshot> {

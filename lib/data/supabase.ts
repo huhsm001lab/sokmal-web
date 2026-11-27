@@ -1,4 +1,5 @@
 // Supabase(Postgres) 저장소. 서버에서만, 서비스 키로 쓴다. 표와 함수는 supabase/migrations/001_init.sql
+import { DEFAULT_SWITCHES } from '../prompts/switches';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { CounterKey } from '../limits';
 import { emptyUsage, type CallLog, type DataStore, type FeedbackDoc } from './types';
@@ -44,6 +45,10 @@ export class SupabaseStore implements DataStore {
   }
   async setName() {}
   async setApproved() {}
+  async getSwitches() {
+    return { ...DEFAULT_SWITCHES };
+  }
+  async setSwitches() {}
   async logCall(r: CallLog) {
     const { error } = await this.db.from('ai_calls').insert({
       uid: r.uid,

@@ -1,3 +1,4 @@
+import type { PromptSwitches } from '../prompts/switches';
 import type { CounterKey } from '../limits';
 
 export type DayUsage = Record<CounterKey, { run: number; follow: number; hits: number }>;
@@ -67,6 +68,9 @@ export interface DataStore {
   adminSnapshot(callLimit?: number): Promise<AdminSnapshot | null>;
   setName(uid: string, name: string): Promise<void>;
   setApproved(uid: string, approved: boolean): Promise<void>;
+  /** 관리자 스위치 (독백 지침 켜기·끄기) */
+  getSwitches(): Promise<PromptSwitches>;
+  setSwitches(s: PromptSwitches): Promise<void>;
 }
 
 export const emptyUsage = (): DayUsage => ({

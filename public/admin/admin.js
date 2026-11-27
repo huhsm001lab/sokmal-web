@@ -233,9 +233,33 @@
       download('sokmal-ai-calls-' + today + '.csv', rows);
     });
 
+    /* 독백 지침 스위치 (11-27): 켜고 끄며 비교. 바로 다음 독백부터 모든 테스터에게 적용 */
+    const sw = Object.assign({ monoRules: true, monoExamples: true }, d.switches || {});
+    const swRow = (key, title, desc) => {
+      const box = h('input', { type: 'checkbox', id: 'sw-' + key, role: 'switch' });
+      box.checked = !!sw[key];
+      const state = h('b', { class: 'sw-state' }, sw[key] ? '켜짐' : '꺼짐');
+      box.addEventListener('change', async () => {
+        box.disabled = true;
+        const r = await api('POST', { switches: { [key]: box.checked } }).catch(() => ({ status: 0 }));
+        box.disabled = false;
+        if (r.status === 200 && r.j.switches) {
+          Object.assign(sw, r.j.switches); d.switches = sw;
+          state.textContent = sw[key] ? '켜짐' : '꺼짐';
+          toast(title + (sw[key] ? '을 켰어요' : '을 껐어요') + '. 다음 독백부터 적용돼요');
+        } else { box.checked = !box.checked; toast('바꾸지 못했어요. 다시 눌러 주세요'); }
+      });
+      return h('label', { class: 'sw-row', for: 'sw-' + key }, box, h('span', { class: 'sw-txt' }, h('b', {}, title), h('span', {}, desc)), state);
+    };
+    const swCard = h('div', { class: 'card sw-card' }, h('h3', {}, '독백 지침 스위치'),
+      h('p', { class: 'adm-leg' }, '끄면 바로 다음 독백부터 모든 테스터에게 적용돼요. AI 호출 기록에 "(지침 끔)"처럼 표시돼서 나중에 비교할 수 있어요.'),
+      swRow('monoRules', '쓰는 기준 7줄', '말하려는 것 하나, 대화, 행동, 일상의 일, 소품 금지 등'),
+      swRow('monoExamples', '송무 예시 독백 5편', '말의 감각을 참고하라고 함께 보내는 예시'),
+      h('p', { class: 'adm-leg' }, '둘 다 꺼도 배우의 재료(이야기·답)와 결과 형식은 그대로 보내요.'));
+
     body.replaceChildren(
       ...notes.map((n) => h('div', { class: 'note warn' }, n)),
-      stats, tCard, cCard, ind, sv, rvCard, nCard,
+      swCard, stats, tCard, cCard, ind, sv, rvCard, nCard,
       h('div', { class: 'out-acts', style: 'margin:16px 0 40px' }, csvFb, csvCalls),
       h('p', { class: 'adm-leg' }, '저장소: ' + ({ redis: 'Upstash Redis', supabase: 'Supabase', file: '내 컴퓨터 파일', memory: '서버 메모리(꺼지면 사라짐)' }[m.storage] || m.storage) + ' · AI: ' + (m.provider === 'openai' ? 'OpenAI' : 'Anthropic')));
   }

@@ -79,13 +79,21 @@ try {
   // 랜딩 후보 표시
   await a.locator('button', { hasText: '랜딩에 쓸 후기로 표시' }).click();
   await a.locator('.tag.ok', { hasText: '랜딩 후보' }).waitFor({ timeout: 5000 });
+  // 독백 지침 스위치: 끄면 새로고침 뒤에도 꺼져 있음
+  assert.equal(await a.isChecked('#sw-monoRules'), true, '지침은 처음에 켜져 있어야 함');
+  await a.click('#sw-monoRules');
+  await a.waitForFunction(() => /꺼짐/.test(document.querySelector('label[for="sw-monoRules"] .sw-state')?.textContent || ''), null, { timeout: 5000 });
+  await a.reload();
+  await a.locator('#sw-monoRules').waitFor({ timeout: 8000 });
+  assert.equal(await a.isChecked('#sw-monoRules'), false, '끈 지침이 새로고침 뒤에도 꺼져 있어야 함');
+  assert.equal(await a.isChecked('#sw-monoExamples'), true);
   await a.screenshot({ path: OUT + '07-admin.png', fullPage: true });
   // 폰 화면에서 가로로 넘치지 않는지 (표는 안에서 밀림)
   await a.setViewportSize({ width: 390, height: 844 });
   const w = await a.evaluate(() => document.documentElement.scrollWidth);
   assert.ok(w <= 392, '폰 화면에서 페이지가 가로로 넘침: ' + w);
   assert.deepEqual(errors, []);
-  console.log('관리자 페이지 확인 통과 (서버 차단·틀린 코드·테스터 코드·AI 호출·의견·후기·이름 메모·랜딩 표시·폰 너비)');
+  console.log('관리자 페이지 확인 통과 (서버 차단·틀린 코드·테스터 코드·AI 호출·의견·후기·이름 메모·랜딩 표시·지침 스위치·폰 너비)');
 } catch (e) {
   console.log('실패:', e.message);
   code = 1;

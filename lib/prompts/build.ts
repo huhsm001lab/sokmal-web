@@ -3,6 +3,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import * as P from './sokmal-prompts.js';
 import { LIMITS, type CounterKey } from '../limits';
+import { applyMonoSwitches, DEFAULT_SWITCHES, switchTag, type PromptSwitches } from './switches';
 
 export class BadInput extends Error {
   constructor(public code: 'bad_request' | 'prompt_too_large', msg: string) {
@@ -177,14 +178,14 @@ function parseBase(v: unknown): Base {
 }
 
 /* ---------- 프롬프트 조립 ---------- */
-export function basePrompt(b: Base): string {
+export function basePrompt(b: Base, sw: PromptSwitches = DEFAULT_SWITCHES): string {
   switch (b.kind) {
     case 'interpret':
       return b.mode === 'exam'
         ? P.examPromptOf({ text: b.input.text, work: b.input.work, part: b.input.part, mine: b.input.mine })
         : P.proPromptOf({ ...b.input, last: b.last });
     case 'mono':
-      return P.monoPrompt(b.c, b.qa, b.mMode, b.hist);
+      return applyMonoSwitches(P.monoPrompt(b.c, b.qa, b.mMode, b.hist), sw);
     case 'image':
       return P.imagePromptOf(b.input);
     case 'design':
@@ -204,7 +205,7 @@ function checkMono(b: MonoBase) {
 const MAX_CHAT_TURNS = 40;
 
 /** 요청 하나를 서버가 할 일로 바꾼다 */
-export function buildJob(body: unknown, left: LeftFn): Job {
+export function buildJob(body: unknown, left: LeftFn, sw: PromptSwitches = DEFAULT_SWITCHES): Job {
   if (!isObj(body)) throw new BadInput('bad_request', '요청');
   const user = (content: string): Anthropic.Beta.BetaMessageParam => ({ role: 'user', content });
 
@@ -228,9 +229,9 @@ export function buildJob(body: unknown, left: LeftFn): Job {
       const b = parseBase({ ...body, kind: 'mono' }) as MonoBase;
       checkMono(b);
       return {
-        feature: '독백·' + b.mMode,
+        feature: '독백·' + b.mMode + switchTag(sw),
         tier: 'main',
-        messages: [user(basePrompt(b))],
+        messages: [user(basePrompt(b, sw))],
         counter: { key: 'mono', kind: 'run', limit: LIMITS.daily.mono },
         base: b,
         refundMeta: true,
@@ -273,7 +274,7 @@ export function buildJob(body: unknown, left: LeftFn): Job {
         throw new BadInput('bad_request', '이 결과는 이어서 묻기를 쓰지 않음');
       }
       // 원본 브라우저 코드와 같은 순서로 대화를 다시 쌓는다
-      const msgs: Anthropic.Beta.BetaMessageParam[] = [user(basePrompt(base)), { role: 'assistant', content: first }];
+      const msgs: Anthropic.Beta.BetaMessageParam[] = [user(basePrompt(base, sw)), { role: 'assistant', content: first }];
       turns.forEach((t, i) => {
         msgs.push(user(wrap(t.q, { turn: i + 2, last: false })));
         msgs.push({ role: 'assistant', content: t.a });
@@ -281,7 +282,7 @@ export function buildJob(body: unknown, left: LeftFn): Job {
       const last = base.kind === 'interpret' && base.mode === 'pro' ? left('pro') === 1 : false;
       msgs.push(user(wrap(q, { turn: turns.length + 2, last })));
       return {
-        feature: base.kind === 'interpret' ? '해석·' + base.mode + '·이어서' : '독백·대화',
+        feature: base.kind === 'interpret' ? '해석·' + base.mode + '·이어서' : '독백·대화' + switchTag(sw),
         tier: 'main',
         messages: msgs,
         counter,

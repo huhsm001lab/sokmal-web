@@ -3,6 +3,7 @@ import { adminCheck } from '@/lib/admin';
 import { pricesKnown } from '@/lib/ai';
 import { config } from '@/lib/config';
 import { kstMonthStartIso } from '@/lib/limits';
+import { cleanSwitches } from '@/lib/prompts/switches';
 import { getStore, json, storeKind } from '@/lib/server';
 
 export const runtime = 'nodejs';
@@ -29,6 +30,7 @@ export async function GET(req: Request) {
   return json({
     ...snap,
     monthCostKrw: await s.costSince(kstMonthStartIso()),
+    switches: await s.getSwitches(),
     meta: {
       storage: storeKind(),
       persistent: ['redis', 'supabase', 'file'].includes(storeKind()),
@@ -43,7 +45,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const s = gate(req);
   if (s instanceof Response) return s;
-  let b: { name?: { uid?: unknown; name?: unknown }; approve?: { uid?: unknown; v?: unknown } };
+  let b: { name?: { uid?: unknown; name?: unknown }; approve?: { uid?: unknown; v?: unknown }; switches?: unknown };
   try {
     b = await req.json();
   } catch {
@@ -53,6 +55,11 @@ export async function POST(req: Request) {
   if (b.name && okUid(b.name.uid) && typeof b.name.name === 'string') {
     await s.setName(b.name.uid, b.name.name.trim().slice(0, 40));
     return json({ ok: true });
+  }
+  if (b.switches && typeof b.switches === 'object') {
+    const next = cleanSwitches({ ...(await s.getSwitches()), ...(b.switches as object) });
+    await s.setSwitches(next);
+    return json({ ok: true, switches: next });
   }
   if (b.approve && okUid(b.approve.uid)) {
     await s.setApproved(b.approve.uid, b.approve.v === true);

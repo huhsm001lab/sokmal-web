@@ -26,10 +26,10 @@ function usdOf(model: string, t: Tokens) {
   return (t.input * p.in + t.output * p.out + t.cacheWrite * p.cacheWrite + t.cacheRead * p.cacheRead) / 1_000_000;
 }
 
-/** 응답 usage → 토큰 합계와 원화 비용. 거절 뒤 다른 모델로 넘어간 경우(iterations)는 시도마다 그 모델 값으로 셈 */
-export function costOf(usage: Anthropic.Beta.BetaUsage | null | undefined, requestedModel: string, usdKrw: number) {
+/** Anthropic 응답 usage → 토큰 합계와 달러 비용. 거절 뒤 다른 모델로 넘어간 경우(iterations)는 시도마다 그 모델 값으로 셈 */
+export function anthropicUsage(usage: Anthropic.Beta.BetaUsage | null | undefined, requestedModel: string) {
   const tokens: Tokens = { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 };
-  if (!usage) return { tokens, krw: 0 };
+  if (!usage) return { tokens, usd: 0 };
   let usd = 0;
   const its = (usage.iterations ?? []).filter((x) => x.type === 'message' || x.type === 'fallback_message');
   if (its.length) {
@@ -53,5 +53,47 @@ export function costOf(usage: Anthropic.Beta.BetaUsage | null | undefined, reque
     tokens.cacheRead = usage.cache_read_input_tokens ?? 0;
     usd = usdOf(requestedModel, tokens);
   }
-  return { tokens, krw: Math.round(usd * usdKrw * 100) / 100 };
+  return { tokens, usd };
+}
+
+/** 달러 → 원 (소수 둘째 자리) */
+export const toKrw = (usd: number, usdKrw: number) => Math.round(usd * usdKrw * 100) / 100;
+
+/** Anthropic usage → 토큰 합계와 원화 비용 */
+export function costOf(usage: Anthropic.Beta.BetaUsage | null | undefined, requestedModel: string, usdKrw: number) {
+  const { tokens, usd } = anthropicUsage(usage, requestedModel);
+  return { tokens, krw: toKrw(usd, usdKrw) };
+}
+
+/* ---------- OpenAI ----------
+   가격은 코드에 박지 않고 환경변수로 받아요(100만 토큰당 달러): OPENAI_PRICE_INPUT / OPENAI_PRICE_CACHED_INPUT / OPENAI_PRICE_OUTPUT.
+   하나라도 없으면 비용을 셀 수 없다고 보고(null), 앱 쪽 월 예산은 건너뛰어요 → OpenAI 대시보드 한도에 맡김. */
+export function openaiPrices(env: NodeJS.ProcessEnv = process.env) {
+  const n = (k: string) => {
+    const v = Number((env[k] ?? '').trim());
+    return (env[k] ?? '').trim() !== '' && Number.isFinite(v) && v >= 0 ? v : null;
+  };
+  const input = n('OPENAI_PRICE_INPUT');
+  const cached = n('OPENAI_PRICE_CACHED_INPUT');
+  const output = n('OPENAI_PRICE_OUTPUT');
+  return input === null || cached === null || output === null ? null : { input, cached, output };
+}
+
+/** OpenAI usage(입력 토큰 안에 캐시 읽기·쓰기가 포함됨) → 토큰 나눔 + 달러 비용(가격이 없으면 null).
+    캐시 쓰기는 따로 값이 없어서 일반 입력 가격으로 셈 */
+export function openaiUsage(
+  u: { input_tokens: number; output_tokens: number; input_tokens_details?: { cached_tokens?: number; cache_write_tokens?: number } | null } | null | undefined,
+  env: NodeJS.ProcessEnv = process.env,
+) {
+  const cacheRead = u?.input_tokens_details?.cached_tokens ?? 0;
+  const cacheWrite = u?.input_tokens_details?.cache_write_tokens ?? 0;
+  const tokens: Tokens = {
+    input: Math.max(0, (u?.input_tokens ?? 0) - cacheRead - cacheWrite),
+    cacheRead,
+    cacheWrite,
+    output: u?.output_tokens ?? 0,
+  };
+  const p = openaiPrices(env);
+  const usd = p ? ((tokens.input + tokens.cacheWrite) * p.input + tokens.cacheRead * p.cached + tokens.output * p.output) / 1_000_000 : null;
+  return { tokens, usd };
 }

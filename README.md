@@ -58,6 +58,12 @@ npm run build && npm run e2e
 
 > 이번 작업에서는 키가 없어서 **실제 Anthropic 호출과 Supabase 연결은 돌려 보지 못했어요.** 위 6번으로 처음 확인해 주세요.
 
+## AI 회사: OpenAI (11-27), 데이터베이스 없이
+- 기본은 OpenAI(Responses API, 공식 `openai` 패키지). `AI_PROVIDER=anthropic`이면 예전 Anthropic 코드로 돌아요.
+- **Vercel에 넣을 값:** `OPENAI_API_KEY`, `OPENAI_MODEL`(필수) · `SOKMAL_INVITE_CODES`(이미 넣음) · (선택) `OPENAI_MODEL_LIGHT`, `OPENAI_REASONING_EFFORT`, 가격 3개 + `MONTHLY_BUDGET_KRW` + `USD_KRW`
+- **Supabase 없이 운영:** 초대 코드 하나 = 사용자 하나. 하루 횟수·월 비용은 서버 메모리에 세서, 서버가 새로 뜨면 초기화될 수 있어요. **비용의 진짜 천장은 OpenAI 대시보드의 예산 한도**예요.
+- 안전장치: 데이터베이스도 초대 코드도 없으면 운영에서 AI를 열지 않아요.
+
 ## 초대 코드
 `SOKMAL_INVITE_CODES`(Vercel 환경변수)에 쉼표로 **숫자 6자리** 코드를 적으면, 첫 화면이 앱과 분리된 **입장 화면**(`legacy/gate.html`)이 되고 그 코드를 넣은 사람만 들어올 수 있어요(서버도 확인). 같은 접속 주소에서 10분 안에 10번 틀리면 15분 동안 막혀요. 나중에 로그인 화면이 이 자리에 들어가요. 코드를 빼면 그 사람은 다음 요청부터 막혀요. 고친 뒤에는 Vercel에서 다시 배포해야 반영돼요. 비워 두면 초대 코드 없이 열려요.
 

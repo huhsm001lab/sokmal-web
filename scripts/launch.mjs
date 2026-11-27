@@ -30,21 +30,24 @@ if (major < 20) fail(`Node.js ${process.versions.node} 은(는) 너무 오래됐
 const ENV_FILE = path.join(ROOT, '.env.local');
 const ENV_TEMPLATE = `# SOKMAL 내 컴퓨터 시험용 설정 (이 파일은 내 컴퓨터에만 있어요. 남에게 보내지 마세요)
 #
-# 아래 세 칸을 채우면 "진짜 AI"로 켜져요. 비워 두면 "시험 모드"(정해 둔 가짜 답)로 켜져요.
+# 아래 두 칸(OPENAI_API_KEY, OPENAI_MODEL)을 채우면 "진짜 AI"로 켜져요. 비워 두면 "시험 모드"(정해 둔 가짜 답)로 켜져요.
 # 고친 뒤에는 SOKMAL 창과 검은 창을 닫고 다시 열어 주세요.
 
-# Anthropic 콘솔(console.anthropic.com)에서 만든 API 키
-ANTHROPIC_API_KEY=
-# 한 달 AI 비용 상한(원). 이 금액에 닿으면 AI를 멈춰요. 예) 200000
-MONTHLY_BUDGET_KRW=
-# 비용을 원화로 셀 때 쓰는 환율(원/달러). 예) 1400
-USD_KRW=
+# OpenAI 대시보드(platform.openai.com)에서 만든 API 키
+OPENAI_API_KEY=
+# 쓸 OpenAI 모델 이름 (OpenAI 모델 목록에 있는 이름 그대로)
+OPENAI_MODEL=
+# (선택) 쓰기 전 질문 만들기에 쓸 더 가벼운 모델. 비우면 위와 같은 모델
+OPENAI_MODEL_LIGHT=
 
-# 모델 (보통은 그대로 두세요)
-MODEL_MAIN=claude-sonnet-5-5
-MODEL_LIGHT=claude-haiku-5-5
-EFFORT_MAIN=medium
-EFFORT_LIGHT=low
+# (선택) 앱이 직접 비용을 세고 멈추게 하려면 아래를 모두 채우세요. 비우면 OpenAI 대시보드의 한도만 써요.
+# 모델 가격(100만 토큰당 달러, OpenAI 가격표에서 확인)
+OPENAI_PRICE_INPUT=
+OPENAI_PRICE_CACHED_INPUT=
+OPENAI_PRICE_OUTPUT=
+# 한 달 AI 비용 상한(원)과 환율(원/달러). 예) 200000 / 1400
+MONTHLY_BUDGET_KRW=
+USD_KRW=
 `;
 if (!fs.existsSync(ENV_FILE)) {
   fs.writeFileSync(ENV_FILE, ENV_TEMPLATE);
@@ -59,7 +62,8 @@ function readEnvFile(f) {
   return o;
 }
 const local = readEnvFile(ENV_FILE);
-const realAi = !!local.ANTHROPIC_API_KEY;
+const realAi = !!(local.OPENAI_API_KEY || local.ANTHROPIC_API_KEY);
+const modelMissing = !!local.OPENAI_API_KEY && !local.OPENAI_MODEL;
 const budgetSet = Number(local.MONTHLY_BUDGET_KRW) > 0 && Number(local.USD_KRW) > 0;
 
 /* ---------- 2. 이미 켜져 있나 ---------- */
@@ -227,8 +231,9 @@ else delete serverEnv.MOCK_AI;
 
 say('');
 if (!realAi) say('지금은 [시험 모드]예요: AI 대신 정해 둔 가짜 답이 나와요. 진짜 AI는 .env.local 에 키를 넣으면 돼요.');
-else if (!budgetSet) say('[주의] .env.local 에 MONTHLY_BUDGET_KRW 와 USD_KRW 를 채워야 AI가 돌아요(비용 안전장치).');
-else say(`진짜 AI로 켜요. 이번 달 비용 상한 ${Number(local.MONTHLY_BUDGET_KRW).toLocaleString('ko-KR')}원.`);
+else if (modelMissing) say('[주의] .env.local 에 OPENAI_MODEL(모델 이름)을 채워야 AI가 돌아요.');
+else if (!local.OPENAI_API_KEY && !budgetSet) say('[주의] Anthropic 키를 쓸 때는 MONTHLY_BUDGET_KRW 와 USD_KRW 를 채워야 AI가 돌아요(비용 안전장치).');
+else say('진짜 AI로 켜요.' + (budgetSet ? ` 앱 비용 상한 ${Number(local.MONTHLY_BUDGET_KRW).toLocaleString('ko-KR')}원.` : ' 비용 천장은 OpenAI 대시보드의 한도예요.'));
 say('SOKMAL을 켜는 중이에요…  (이 창을 닫으면 SOKMAL이 꺼져요)');
 
 const server = spawn(process.execPath, [path.join(ROOT, 'node_modules', 'next', 'dist', 'bin', 'next'), 'start', '-p', String(PORT), '-H', '127.0.0.1'], {

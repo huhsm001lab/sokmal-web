@@ -1,9 +1,8 @@
 // AI 호출 하나. 순서: 사용자 확인 → 입력 검사·프롬프트 조립 → 월 예산 확인 → 하루 횟수 예약 → 스트리밍 → 비용 기록
 // 응답은 한 줄에 JSON 하나씩(NDJSON): {"t":"글자"} … 마지막에 {"done":true,…} 또는 {"error":"코드"}
-import Anthropic from '@anthropic-ai/sdk';
-import { runAi } from '@/lib/ai';
-import { costOf } from '@/lib/budget';
-import { aiNotReady, config } from '@/lib/config';
+import { aiErrorCode, pricesKnown, runAi, type AiResult } from '@/lib/ai';
+import { toKrw } from '@/lib/budget';
+import { aiNotReady, appBudgetActive, config, modelFor } from '@/lib/config';
 import { kstDay, kstMonthStartIso, LIMITS, type CounterKey } from '@/lib/limits';
 import { BadInput, buildJob, isMetaReply, type Job } from '@/lib/prompts/build';
 import { inviteOk } from '@/lib/invite';
@@ -15,15 +14,6 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 const MAX_BODY = 400_000; // 글자 수. 본문 8만 자 + 대화 기록을 넉넉히
-
-function errorCode(e: unknown): string {
-  if (e instanceof Anthropic.APIUserAbortError) return 'cancelled';
-  if (e instanceof Anthropic.RateLimitError) return 'busy';
-  if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) return 'not_configured';
-  if (e instanceof Anthropic.BadRequestError) return 'bad_request';
-  if (e instanceof Anthropic.InternalServerError || e instanceof Anthropic.APIConnectionError) return 'busy';
-  return 'error';
-}
 
 export async function POST(req: Request) {
   const notReady = aiNotReady();
@@ -57,8 +47,8 @@ export async function POST(req: Request) {
     throw e;
   }
 
-  // 월 예산 상한: 닿으면 새 호출을 막는다 (가짜 답일 때는 비용이 없으니 건너뜀)
-  if (!config.mockAi) {
+  // 월 예산 상한: 닿으면 새 호출을 막는다. 금액·환율·가격을 알 때만 셈(OpenAI는 대시보드 한도가 진짜 천장)
+  if (appBudgetActive(pricesKnown())) {
     const spent = await store.costSince(kstMonthStartIso());
     if (spent >= config.monthlyBudgetKrw) {
       console.error('[sokmal] 월 예산 상한 도달', spent, config.monthlyBudgetKrw);
@@ -78,7 +68,7 @@ export async function POST(req: Request) {
   const ctl = new AbortController();
   req.signal.addEventListener('abort', () => ctl.abort());
   const enc = new TextEncoder();
-  const model = job.tier === 'light' ? config.modelLight : config.modelMain;
+  const model = modelFor(job.tier);
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -92,8 +82,9 @@ export async function POST(req: Request) {
         }
       };
       let text = '';
-      const log = (status: CallLog['status'], u: Parameters<typeof costOf>[0], usedModel: string) => {
-        const { tokens, krw } = costOf(u, usedModel, config.usdKrw);
+      const log = (status: CallLog['status'], r: Pick<AiResult, 'tokens' | 'usd'> | null, usedModel: string) => {
+        const tokens = r?.tokens ?? { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 };
+        const krw = r?.usd != null && config.usdKrw > 0 ? toKrw(r.usd, config.usdKrw) : 0;
         return store
           .logCall({
             uid,
@@ -113,19 +104,19 @@ export async function POST(req: Request) {
           text += d;
           send({ t: d });
         });
-        if (r.stopReason === 'refusal') {
+        if (r.stop === 'refusal') {
           await refund();
-          await log('refused', r.usage, r.model);
+          await log('refused', r, r.model);
           // 중간에 거절되면 그때까지 나온 글은 버린다
           send({ error: 'refused' });
         } else {
           const meta = isMetaReply(r.text);
           if (meta && job.refundMeta) await refund();
-          await log(meta ? 'meta' : 'ok', r.usage, r.model);
-          send({ done: true, text: r.text, truncated: r.stopReason === 'max_tokens', base: job.base, usage: await store.usage(uid, day) });
+          await log(meta ? 'meta' : 'ok', r, r.model);
+          send({ done: true, text: r.text, truncated: r.stop === 'length', base: job.base, usage: await store.usage(uid, day) });
         }
       } catch (e) {
-        const code = ctl.signal.aborted ? 'cancelled' : errorCode(e);
+        const code = ctl.signal.aborted ? 'cancelled' : aiErrorCode(e);
         if (code !== 'cancelled') console.error('[sokmal] AI 호출 실패', e);
         await refund();
         // 중단·오류 때는 사용량을 알 수 없어 토큰 0으로 기록된다 (비용이 조금 덜 잡힐 수 있음)

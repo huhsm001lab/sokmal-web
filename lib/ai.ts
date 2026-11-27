@@ -1,27 +1,116 @@
-// Anthropic API 호출 (서버에서만). 스트리밍으로 글자를 흘려보내고, 끝나면 사용량을 돌려준다.
+// AI 호출 (서버에서만). 스트리밍으로 글자를 흘려보내고, 끝나면 사용량을 돌려준다.
+// 회사: OpenAI(11-27 송무 결정, 기본) 또는 Anthropic. 결과는 같은 모양으로 맞춘다.
 import Anthropic from '@anthropic-ai/sdk';
-import { config } from './config';
+import OpenAI from 'openai';
+import { anthropicUsage, openaiPrices, openaiUsage, type Tokens } from './budget';
+import { config, modelFor } from './config';
 import type { Job } from './prompts/build';
 
 export type AiResult = {
   text: string;
-  stopReason: string | null;
-  usage: Anthropic.Beta.BetaUsage | null;
+  /** end: 끝까지 씀 / length: 길어서 끊김 / refusal: 거절 */
+  stop: 'end' | 'length' | 'refusal';
+  tokens: Tokens;
+  /** 달러 비용. 가격을 모르면 null */
+  usd: number | null;
   model: string;
 };
 
-let client: Anthropic | null = null;
-const getClient = () => (client ??= new Anthropic({ apiKey: config.anthropicKey }));
+/** 중단은 회사와 상관없이 이 오류로 */
+export class AiAborted extends Error {}
+/** 회사 쪽 오류를 화면 문구 코드로 */
+export function aiErrorCode(e: unknown): string {
+  if (e instanceof AiAborted || e instanceof Anthropic.APIUserAbortError || e instanceof OpenAI.APIUserAbortError) return 'cancelled';
+  if (e instanceof Anthropic.RateLimitError || e instanceof OpenAI.RateLimitError) return 'busy';
+  if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) return 'not_configured';
+  if (e instanceof OpenAI.AuthenticationError || e instanceof OpenAI.PermissionDeniedError) return 'not_configured';
+  if (e instanceof Anthropic.BadRequestError || e instanceof OpenAI.BadRequestError) return 'bad_request';
+  if (e instanceof Anthropic.InternalServerError || e instanceof Anthropic.APIConnectionError) return 'busy';
+  if (e instanceof OpenAI.InternalServerError || e instanceof OpenAI.APIConnectionError) return 'busy';
+  return 'error';
+}
+
+export async function runAi(job: Job, signal: AbortSignal, onText: (delta: string) => void): Promise<AiResult> {
+  const model = modelFor(job.tier);
+  if (config.mockAi) return mockRun(job, model, signal, onText);
+  return config.provider === 'openai' ? runOpenAI(job, model, signal, onText) : runAnthropic(job, model, signal, onText);
+}
+
+/** 대화 기록을 문자열 메시지로 (프롬프트 조립은 문자열만 만듦) */
+function plainMessages(job: Job) {
+  return job.messages.map((m) => ({
+    role: m.role === 'assistant' ? ('assistant' as const) : ('user' as const),
+    content: typeof m.content === 'string' ? m.content : '',
+  }));
+}
+
+/* ---------- OpenAI (Responses API 스트리밍) ---------- */
+let openai: OpenAI | null = null;
+const getOpenAI = () => (openai ??= new OpenAI({ apiKey: config.openaiKey }));
+
+/** OpenAI 스트림 이벤트를 읽어 결과로 (테스트에서 가짜 이벤트로 확인) */
+export async function readOpenAIStream(
+  events: AsyncIterable<OpenAI.Responses.ResponseStreamEvent>,
+  model: string,
+  onText: (delta: string) => void,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<AiResult> {
+  let text = '';
+  let refused = false;
+  let stop: AiResult['stop'] = 'end';
+  let final: OpenAI.Responses.Response | null = null;
+  for await (const ev of events) {
+    switch (ev.type) {
+      case 'response.output_text.delta':
+        text += ev.delta;
+        onText(ev.delta);
+        break;
+      case 'response.refusal.delta':
+        refused = true;
+        break;
+      case 'response.completed':
+        final = ev.response;
+        break;
+      case 'response.incomplete':
+        final = ev.response;
+        stop = ev.response.incomplete_details?.reason === 'content_filter' ? 'refusal' : 'length';
+        break;
+      case 'response.failed':
+        throw new Error('OpenAI 응답 실패: ' + (ev.response.error?.message ?? '알 수 없음'));
+      case 'error':
+        throw new Error('OpenAI 오류: ' + ev.message);
+    }
+  }
+  if (refused && !text.trim()) stop = 'refusal';
+  const { tokens, usd } = openaiUsage(final?.usage, env);
+  return { text, stop, tokens, usd, model: final?.model || model };
+}
+
+async function runOpenAI(job: Job, model: string, signal: AbortSignal, onText: (d: string) => void): Promise<AiResult> {
+  const effort = config.openaiEffort as OpenAI.ReasoningEffort | '';
+  const stream = await getOpenAI().responses.create(
+    {
+      model,
+      input: plainMessages(job),
+      stream: true,
+      max_output_tokens: job.tier === 'light' ? 8000 : 32000,
+      ...(effort ? { reasoning: { effort } } : {}),
+    },
+    { signal },
+  );
+  return readOpenAIStream(stream, model, onText);
+}
+
+/* ---------- Anthropic ---------- */
+let anthropic: Anthropic | null = null;
+const getAnthropic = () => (anthropic ??= new Anthropic({ apiKey: config.anthropicKey }));
 
 /** 거절(refusal) 시 서버가 다른 모델로 이어 쓰는 기능을 지원하는 모델 */
 const SUPPORTS_FALLBACK = new Set(['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-opus-5', 'claude-fable-5-2', 'claude-fable-5-1']);
 
-export async function runAi(job: Job, signal: AbortSignal, onText: (delta: string) => void): Promise<AiResult> {
-  const model = job.tier === 'light' ? config.modelLight : config.modelMain;
-  if (config.mockAi) return mockRun(job, model, signal, onText);
-
+async function runAnthropic(job: Job, model: string, signal: AbortSignal, onText: (d: string) => void): Promise<AiResult> {
   const fallback = SUPPORTS_FALLBACK.has(model);
-  const stream = getClient().beta.messages.stream(
+  const stream = getAnthropic().beta.messages.stream(
     {
       model,
       max_tokens: job.tier === 'light' ? 8000 : 32000,
@@ -39,8 +128,14 @@ export async function runAi(job: Job, signal: AbortSignal, onText: (delta: strin
     .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text')
     .map((b) => b.text)
     .join('');
-  return { text, stopReason: msg.stop_reason, usage: msg.usage, model: msg.model || model };
+  const used = msg.model || model;
+  const { tokens, usd } = anthropicUsage(msg.usage, used);
+  const stop = msg.stop_reason === 'refusal' ? 'refusal' : msg.stop_reason === 'max_tokens' ? 'length' : 'end';
+  return { text, stop, tokens, usd, model: used };
 }
+
+/** 지금 설정으로 비용(달러)을 셀 수 있는지 */
+export const pricesKnown = () => (config.provider === 'openai' ? openaiPrices() !== null : true);
 
 /* ---------- 가짜 답 (MOCK_AI=1) ---------- */
 const MOCK: Record<string, string> = {
@@ -109,10 +204,9 @@ async function mockRun(job: Job, model: string, signal: AbortSignal, onText: (d:
   const text = key === 'check' ? '[확인] 붙여 넣은 글이 희곡이 맞나요?' : (MOCK[key] ?? MOCK.design);
   const parts = text.match(/[\s\S]{1,24}/g) ?? [];
   for (const p of parts) {
-    if (signal.aborted) throw new Anthropic.APIUserAbortError();
+    if (signal.aborted) throw new AiAborted();
     await new Promise((r) => setTimeout(r, 8));
     onText(p);
   }
-  const usage = { input_tokens: 1000, output_tokens: 300, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, iterations: null } as unknown as Anthropic.Beta.BetaUsage;
-  return { text, stopReason: 'end_turn', usage, model: model + ' (mock)' };
+  return { text, stop: 'end', tokens: { input: 1000, output: 300, cacheWrite: 0, cacheRead: 0 }, usd: 0, model: (model || 'mock') + ' (mock)' };
 }

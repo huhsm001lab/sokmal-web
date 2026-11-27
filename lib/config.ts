@@ -43,6 +43,10 @@ export function modelFor(tier: 'main' | 'light'): string {
   return tier === 'light' ? config.modelLight : config.modelMain;
 }
 
+/** 키처럼 보이는 글자 (모델 이름 칸에 키를 잘못 넣은 경우를 막고, 기록에서 가리는 데 씀) */
+export const looksLikeKey = (v: string) => /\b(sk|rk|pk)-[A-Za-z0-9_\-]{8,}/.test(v);
+export const hideKeys = (v: string) => v.replace(/\b(sk|rk|pk)-[A-Za-z0-9_*\-]{4,}/g, '$1-…(가림)');
+
 /** AI를 돌릴 준비가 됐는지. 안 됐으면 이유 */
 export function aiNotReady(): string | null {
   if (config.mockAi) return null;
@@ -50,6 +54,7 @@ export function aiNotReady(): string | null {
     // 송무 결정(11-27): 비용의 진짜 천장은 OpenAI 대시보드 한도. 앱 쪽 예산은 값이 있을 때만 셈
     if (!config.openaiKey) return 'OPENAI_API_KEY 없음';
     if (!config.openaiModel) return 'OPENAI_MODEL 없음';
+    if (looksLikeKey(config.openaiModel) || looksLikeKey(config.openaiModelLight)) return 'OPENAI_MODEL 칸에 키가 들어 있음 (모델 이름을 넣어야 함)';
     return null;
   }
   if (!config.anthropicKey) return 'ANTHROPIC_API_KEY 없음';

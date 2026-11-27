@@ -1,7 +1,7 @@
 // 관리자 데이터 (관리자 코드 필요): 테스터별 사용, AI 호출·비용, 의견·후기 / 이름 메모·랜딩 후기 표시
 import { adminCheck } from '@/lib/admin';
 import { pricesKnown } from '@/lib/ai';
-import { config } from '@/lib/config';
+import { config, hideKeys } from '@/lib/config';
 import { kstMonthStartIso } from '@/lib/limits';
 import { cleanSwitches } from '@/lib/prompts/switches';
 import { getStore, json, storeKind } from '@/lib/server';
@@ -27,6 +27,8 @@ export async function GET(req: Request) {
   }
   const snap = await s.adminSnapshot(1000);
   if (!snap) return json({ error: 'unsupported' }, 501);
+  // 예전 기록에 키가 남아 있어도 화면에는 가려서 보냄
+  snap.calls = snap.calls.map((c) => ({ ...c, model: hideKeys(c.model), ...(c.detail ? { detail: hideKeys(c.detail) } : {}) }));
   return json({
     ...snap,
     monthCostKrw: await s.costSince(kstMonthStartIso()),

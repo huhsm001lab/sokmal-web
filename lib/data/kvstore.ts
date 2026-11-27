@@ -11,6 +11,7 @@
 //   admin:approved    해시  uid → '1' (랜딩에 쓸 후기)
 //   admin:switches    값    관리자 스위치 JSON (독백 지침·예시 켜기/끄기)
 //   waitlist          해시  연락처 열쇠 → 대기 명단 JSON (소개 페이지에서 남김)
+import { hideKeys } from '../config';
 import { WAIT_MAX, waitKey, type WaitEntry } from '../waitlist';
 import { cleanSwitches, type PromptSwitches } from '../prompts/switches';
 import type { CounterKey } from '../limits';
@@ -82,7 +83,7 @@ export class KvStore implements DataStore {
 
   async logCall(row: CallLog) {
     const at = new Date().toISOString();
-    await this.kv.lpush('calls', JSON.stringify({ ...row, at }));
+    await this.kv.lpush('calls', JSON.stringify({ ...row, model: hideKeys(row.model), ...(row.detail ? { detail: hideKeys(row.detail) } : {}), at }));
     await this.kv.ltrim('calls', 0, 4999);
     if (row.costKrw) await this.kv.incrbyfloat(`cost:${kstMonthOf(at)}`, row.costKrw);
     await this.kv.hincrby(`user:${row.uid}`, 'calls', 1);

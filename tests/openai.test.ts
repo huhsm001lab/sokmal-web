@@ -137,3 +137,12 @@ describe('오류 원인 기록 (11-27)', () => {
     expect(d).not.toContain('abcd1234');
   });
 });
+
+describe('모델 칸에 키를 넣은 실수 막기 (11-27)', () => {
+  it('키처럼 보이면 준비 안 됨, 기록에서는 가림', async () => {
+    const { looksLikeKey, hideKeys } = await import('@/lib/config');
+    expect(looksLikeKey('sk-proj-AbCdEfGh12345678')).toBe(true);
+    expect(looksLikeKey('gpt-6-luna')).toBe(false);
+    expect(hideKeys('model sk-proj-AbCdEfGh12345678 401')).toBe('model sk-…(가림) 401');
+  });
+});

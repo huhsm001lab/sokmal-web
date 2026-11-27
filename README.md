@@ -78,7 +78,7 @@ npm run build && npm run e2e
 - `prd.md`, `SOKMAL-개발.md`, `CLAUDE.md`, `docs/`(기획·개발 문서)
 
 원문이 없으면 `npm run build`·`npm run dev` 전에 `scripts/ensure-prompts.mjs`가 **예시 프롬프트**를 대신 넣어요. 화면 위에 "예시 프롬프트" 안내가 떠요.
-배포할 때 원문을 쓰려면, 원문 파일을 base64로 바꿔 Vercel 환경변수 `SOKMAL_PROMPTS_JS_BASE64`에 넣어요(빌드할 때 파일로 만들어 줌).
+배포할 때 원문을 쓰려면, 원문 파일을 gzip으로 압축해 base64로 바꾼 뒤 조각으로 나눠 Vercel 환경변수 `SOKMAL_PROMPTS_1`, `SOKMAL_PROMPTS_2`, … 에 넣어요(빌드할 때 이어 붙여 파일로 만들어 줌. 값이 깨져 있으면 빌드가 멈춤). 예전 방식인 `SOKMAL_PROMPTS_JS_BASE64`(압축 없이 한 칸)도 읽어요.
 
 ## 프롬프트를 고칠 때 (원문이 있는 컴퓨터에서)
 `lib/prompts/sokmal-prompts.js` 를 직접 고치고, 이유를 `SOKMAL-개발.md` 에 적어요. `scripts/extract-prompts.mjs` 를 다시 돌리면 시제품 문구로 덮어쓰니 주의하세요. 프롬프트를 바꾸면 `tests/prompt-parity.test.ts` 가 실패하는데, 의도한 변경이면 그 테스트의 기준을 함께 고쳐요.

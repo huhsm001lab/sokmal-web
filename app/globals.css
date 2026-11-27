@@ -196,3 +196,21 @@ html.gated .wrap{display:none}
 .gate-go{width:100%;justify-content:center;padding:14px;font-size:16px}
 .gate-msg{min-height:22px;margin:2px 0 0;font-size:13px;color:#B4503B}
 .gate-foot{margin-top:28px;font-size:12px;color:var(--muted)}
+
+/* ---------- 관리자 페이지 (/admin) ---------- */
+.admin-wrap{max-width:1040px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px))}
+.admin-top-acts{display:flex;gap:6px;margin-left:auto}
+.admin-login{max-width:420px;margin:32px auto}
+.admin-login input{width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);margin:4px 0 0}
+.adm-msg{min-height:20px;margin:6px 0 0;font-size:13px;color:#B4503B}
+.admin-stats{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.admin-stats>div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:2px}
+.admin-stats b{font-size:22px;color:var(--navy);font-variant-numeric:tabular-nums}
+.admin-stats span{font-size:12px;color:var(--muted)}
+.adm-scroll{overflow-x:auto;margin:8px 0}
+.adm-table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}
+.adm-table th,.adm-table td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:middle}
+.adm-table th{font-size:12px;color:var(--muted);background:var(--soft2);font-weight:700}
+.adm-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+.adm-name{display:flex;gap:4px;align-items:center}
+.adm-name input{width:96px;font:inherit;font-size:13px;padding:5px 6px;border:1px solid var(--line);border-radius:6px}

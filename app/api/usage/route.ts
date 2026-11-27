@@ -3,7 +3,7 @@ import { aiNotReady, config } from '@/lib/config';
 import { kstDay, LIMITS, type CounterKey } from '@/lib/limits';
 import { usingExamplePrompts } from '@/lib/prompts/build';
 import { inviteOk } from '@/lib/invite';
-import { getStore, json, userIdOf } from '@/lib/server';
+import { getStore, inviteCodeOf, json, userIdOf } from '@/lib/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,6 +17,7 @@ export async function GET(req: Request) {
   const uid = await userIdOf(req);
   if (!uid) return json({ ready: false, error: 'session_expired' }, 401);
   const day = kstDay();
+  await store.touch(uid, day, inviteCodeOf(req)).catch((e) => console.error('[sokmal] 방문 기록 실패', e));
   return json({ ready: !aiNotReady(), mock: config.mockAi, examplePrompts: usingExamplePrompts, day, limits: LIMITS.daily, usage: await store.usage(uid, day) });
 }
 

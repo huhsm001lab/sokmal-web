@@ -80,6 +80,6 @@ describe('내 컴퓨터용 파일 저장소', () => {
     await a.logCall({ uid: 'u', feature: 'f', model: 'm', status: 'ok', inputTokens: 1, outputTokens: 1, cacheWriteTokens: 0, cacheReadTokens: 0, costKrw: 12.5 });
     const b = new FileStore(f);
     expect((await b.usage('u', 'd')).exam).toEqual({ run: 5, follow: 0, hits: 1 });
-    expect(await b.costSince('2000-01-01T00:00:00Z')).toBe(12.5);
+    expect(await b.costSince(kstMonthStartIso())).toBe(12.5); // 이번 달(한국 시간) 합계
   });
 });

@@ -6,7 +6,7 @@ import { aiNotReady, appBudgetActive, config, modelFor } from '@/lib/config';
 import { kstDay, kstMonthStartIso, LIMITS, type CounterKey } from '@/lib/limits';
 import { BadInput, buildJob, isMetaReply, type Job } from '@/lib/prompts/build';
 import { inviteOk } from '@/lib/invite';
-import { getStore, json, userIdOf } from '@/lib/server';
+import { getStore, inviteCodeOf, json, userIdOf } from '@/lib/server';
 import type { CallLog } from '@/lib/data/types';
 
 export const runtime = 'nodejs';
@@ -36,6 +36,7 @@ export async function POST(req: Request) {
   }
 
   const day = kstDay();
+  await store.touch(uid, day, inviteCodeOf(req)).catch((e) => console.error('[sokmal] 방문 기록 실패', e));
   const usage = await store.usage(uid, day);
   const left = (k: CounterKey) => Math.max(0, LIMITS.daily[k] - (usage[k].run + usage[k].follow));
 

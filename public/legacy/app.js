@@ -126,11 +126,20 @@ const Api={ready:false,auth:null,
 };
 /* 오늘 사용 횟수: 서버가 센 값을 받아 보여 주기만 한다 */
 const Usage={data:{},set(u){if(u){this.data=u;paintUsage();}}};
-/* 의견·후기: 3단계(서버 이식) 전까지 이 기기에만 저장. ref()는 원래 코드와의 호환용 */
+/* 의견·후기: 이 기기에 저장하고, 서버(/api/feedback)에도 보내 관리자가 볼 수 있게 (11-27). ref()는 원래 코드와의 호환용 */
 const Shared={data:{},KEY:'sokmal.feedback',
   ref(){return true;},
-  load(){try{this.data=JSON.parse(localStorage.getItem(this.KEY)||'{}')||{};}catch(e){this.data={};}paintUsage();},
-  mutate(fn){try{fn(this.data);}catch(e){}this.data.updatedAt=Date.now();let ok=true;try{localStorage.setItem(this.KEY,JSON.stringify(this.data));}catch(e){ok=false;}paintUsage();return Promise.resolve(ok);}
+  saveLocal(){try{localStorage.setItem(this.KEY,JSON.stringify(this.data));return true;}catch(e){return false;}},
+  load(){try{this.data=JSON.parse(localStorage.getItem(this.KEY)||'{}')||{};}catch(e){this.data={};}paintUsage();
+    /* 서버에 있는 내 문서와 합치기(기기를 바꿔도 "의견 2번 뒤 후기 묻기"가 이어지게) */
+    Api.headers().then(hd=>fetch('/api/feedback',{headers:hd,cache:'no-store'})).then(r=>r.ok?r.json():null).then(j=>{const d=j&&j.doc;if(!d)return;
+      const mine=this.data.entries||[],theirs=d.entries||[];
+      if(theirs.length>mine.length)this.data.entries=theirs;
+      if(d.review&&!this.data.review)this.data.review=d.review;
+      if(d.reviewSkip&&!this.data.reviewSkip)this.data.reviewSkip=d.reviewSkip;
+      this.saveLocal();}).catch(()=>{});},
+  push(){Api.headers().then(hd=>fetch('/api/feedback',{method:'PUT',headers:hd,body:JSON.stringify(this.data)})).catch(()=>{});},
+  mutate(fn){try{fn(this.data);}catch(e){}this.data.updatedAt=Date.now();const ok=this.saveLocal();this.push();paintUsage();return Promise.resolve(ok);}
 };
 function usedToday(m){const r=Usage.data[m];return r?(r.run||0)+(r.follow||0):0;}
 function leftToday(m){return Math.max(0,LIMITS.daily[m]-usedToday(m));}

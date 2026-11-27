@@ -1,7 +1,7 @@
 // Supabase(Postgres) 저장소. 서버에서만, 서비스 키로 쓴다. 표와 함수는 supabase/migrations/001_init.sql
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { CounterKey } from '../limits';
-import { emptyUsage, type CallLog, type DataStore } from './types';
+import { emptyUsage, type CallLog, type DataStore, type FeedbackDoc } from './types';
 
 export class SupabaseStore implements DataStore {
   constructor(private db: SupabaseClient) {}
@@ -33,6 +33,17 @@ export class SupabaseStore implements DataStore {
     if (error) throw error;
     return Number(data ?? 0);
   }
+  // 관리자·의견 기능은 Supabase에서는 아직 만들지 않음(11-27 송무 결정으로 Supabase 대신 Redis 사용)
+  async touch() {}
+  async getFeedback(): Promise<FeedbackDoc | null> {
+    return null;
+  }
+  async putFeedback() {}
+  async adminSnapshot() {
+    return null;
+  }
+  async setName() {}
+  async setApproved() {}
   async logCall(r: CallLog) {
     const { error } = await this.db.from('ai_calls').insert({
       uid: r.uid,

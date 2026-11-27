@@ -6,10 +6,11 @@ import crypto from 'node:crypto';
 import { FileStore } from './data/file';
 import { inviteOn, inviteValid } from './invite';
 import { MemoryStore } from './data/memory';
+import { redisOn, RedisStore } from './data/redis';
 import { SupabaseStore } from './data/supabase';
 import type { DataStore } from './data/types';
 
-const g = globalThis as unknown as { __sokmalMem?: MemoryStore; __sokmalFile?: FileStore; __sokmalSb?: SupabaseClient };
+const g = globalThis as unknown as { __sokmalMem?: MemoryStore; __sokmalFile?: FileStore; __sokmalRedis?: RedisStore; __sokmalSb?: SupabaseClient };
 
 function admin(): SupabaseClient {
   return (g.__sokmalSb ??= createClient(config.supabaseUrl, config.supabaseServiceKey, {
@@ -22,9 +23,26 @@ function admin(): SupabaseClient {
     DB도 초대 코드도 없으면 열지 않음(아무나 우리 키를 쓰지 못하게) */
 export function getStore(): DataStore | null {
   if (supabaseOn()) return new SupabaseStore(admin());
+  // 11-27: Vercel에서 Upstash Redis를 연결하면 여기 (기록이 남음)
+  if (redisOn()) return (g.__sokmalRedis ??= new RedisStore());
   if (config.devAuth && config.localDataFile) return (g.__sokmalFile ??= new FileStore(path.resolve(config.localDataFile)));
   if (config.devAuth || inviteOn()) return (g.__sokmalMem ??= new MemoryStore());
   return null;
+}
+
+/** 저장소 종류 (관리자 화면에서 '기록이 남는지' 알려 줌) */
+export function storeKind(): 'supabase' | 'redis' | 'file' | 'memory' | 'none' {
+  if (supabaseOn()) return 'supabase';
+  if (redisOn()) return 'redis';
+  if (config.devAuth && config.localDataFile) return 'file';
+  if (config.devAuth || inviteOn()) return 'memory';
+  return 'none';
+}
+
+/** 요청에 붙은 초대 코드 (맞는 코드일 때만) — 관리자 화면에서 테스터를 코드로 알아보게 */
+export function inviteCodeOf(req: Request): string | null {
+  const c = (req.headers.get('x-sokmal-invite') || '').trim();
+  return inviteOn() && inviteValid(c) ? c : null;
 }
 
 /** 초대 코드로 사용자 구분 (코드 자체는 남기지 않고 해시 일부만) */

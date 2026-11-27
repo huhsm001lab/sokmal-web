@@ -196,6 +196,7 @@ html.gated .wrap{display:none}
 .gate-go{width:100%;justify-content:center;padding:14px;font-size:16px}
 .gate-msg{min-height:22px;margin:2px 0 0;font-size:13px;color:#B4503B}
 .gate-foot{margin-top:28px;font-size:12px;color:var(--muted)}
+.gate-foot a{color:var(--navy)}
 
 /* ---------- 관리자 페이지 (/admin) ---------- */
 .admin-wrap{max-width:1040px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px))}

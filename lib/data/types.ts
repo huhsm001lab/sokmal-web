@@ -1,3 +1,4 @@
+import type { WaitEntry } from '../waitlist';
 import type { PromptSwitches } from '../prompts/switches';
 import type { CounterKey } from '../limits';
 
@@ -71,6 +72,10 @@ export interface DataStore {
   /** 관리자 스위치 (독백 지침 켜기·끄기) */
   getSwitches(): Promise<PromptSwitches>;
   setSwitches(s: PromptSwitches): Promise<void>;
+  /** 대기 명단: 새 사람이면 'new', 같은 연락처면 'updated', 가득 차면 'full' */
+  addWaitlist(e: WaitEntry): Promise<'new' | 'updated' | 'full'>;
+  waitlist(): Promise<WaitEntry[]>;
+  removeWaitlist(e: Pick<WaitEntry, 'contact' | 'kind'>): Promise<void>;
 }
 
 export const emptyUsage = (): DayUsage => ({

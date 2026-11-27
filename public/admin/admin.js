@@ -212,6 +212,23 @@
       notesList.length ? null : h('div', { class: 'adm-leg' }, '아직 없어요.'),
       ...notesList.map((e) => h('div', { class: 'adm-row' }, h('div', {}, e.note), h('div', { class: 'm adm-leg' }, e._who + ' · ' + (e.feature || '') + ' · ' + ymdOf(e.at) + ' · ' + [e.fit, e.aiLike, e.newThought].filter(Boolean).join(' / ')))));
 
+    /* 대기 명단 (소개 페이지에서 남김) */
+    const wl = d.waitlist || [];
+    const wCard = h('div', { class: 'card' }, h('h3', {}, '대기 명단 ' + wl.length + '명'),
+      h('p', { class: 'adm-leg' }, '소개 페이지에서 초대 코드가 없는 사람이 남긴 연락처예요. 초대 코드 안내에만 쓰고, 지워 달라고 하면 지워 주세요.'),
+      wl.length ? h('div', { class: 'adm-scroll' }, h('table', { class: 'adm-table' },
+        h('thead', {}, h('tr', {}, ['남긴 때', '연락처', '하는 일', '한 줄', ''].map((x) => h('th', {}, x)))),
+        h('tbody', {}, wl.map((w) => {
+          const del = h('button', { type: 'button', class: 'btn small' }, '지우기');
+          del.addEventListener('click', async () => {
+            if (!confirm(w.contact + ' 을(를) 대기 명단에서 지울까요?')) return;
+            del.disabled = true;
+            const r = await api('POST', { waitDelete: { contact: w.contact, kind: w.kind } }).catch(() => ({ status: 0 }));
+            if (r.status === 200) { d.waitlist = (d.waitlist || []).filter((x) => x !== w); toast('지웠어요'); render(d); } else { del.disabled = false; toast('지우지 못했어요'); }
+          });
+          return h('tr', {}, h('td', {}, timeOf(w.at)), h('td', {}, w.contact), h('td', {}, w.role), h('td', { style: 'white-space:normal;min-width:180px' }, w.note || '-'), h('td', {}, del));
+        })))) : h('div', { class: 'adm-leg' }, '아직 없어요.'));
+
     /* CSV */
     const q = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
     const download = (name, rows) => {
@@ -225,6 +242,12 @@
       testers.forEach((t) => ((t.feedback && t.feedback.entries) || []).forEach((e) => rows.push(['의견', label(t), t.code || '', ymdOf(e.at), e.feature, e.mode, e.fit, e.aiLike, e.newThought, e.note, '', '', ''])));
       rvs.forEach((t) => { const r = t.feedback.review; rows.push(['후기', label(t), t.code || '', ymdOf(r.at), '', '', '', '', '', r.text, roleOf(r), r.consent ? '예' : '아니오', appr[t.uid] ? '예' : '아니오', ...RV_Q.map((x) => (r.answers || {})[x.k] || '')]); });
       download('sokmal-feedback-' + today + '.csv', rows);
+    });
+    const csvWait = h('button', { type: 'button', class: 'btn' }, '대기 명단 CSV');
+    csvWait.addEventListener('click', () => {
+      const rows = [['남긴 때', '연락처', '종류', '하는 일', '한 줄']];
+      (d.waitlist || []).forEach((w) => rows.push([w.at, w.contact, w.kind === 'email' ? '이메일' : '휴대폰', w.role, w.note]));
+      download('sokmal-waitlist-' + today + '.csv', rows);
     });
     const csvCalls = h('button', { type: 'button', class: 'btn' }, 'AI 호출 CSV');
     csvCalls.addEventListener('click', () => {
@@ -259,8 +282,8 @@
 
     body.replaceChildren(
       ...notes.map((n) => h('div', { class: 'note warn' }, n)),
-      swCard, stats, tCard, cCard, ind, sv, rvCard, nCard,
-      h('div', { class: 'out-acts', style: 'margin:16px 0 40px' }, csvFb, csvCalls),
+      swCard, stats, tCard, cCard, ind, sv, rvCard, nCard, wCard,
+      h('div', { class: 'out-acts', style: 'margin:16px 0 40px' }, csvFb, csvCalls, csvWait),
       h('p', { class: 'adm-leg' }, '저장소: ' + ({ redis: 'Upstash Redis', supabase: 'Supabase', file: '내 컴퓨터 파일', memory: '서버 메모리(꺼지면 사라짐)' }[m.storage] || m.storage) + ' · AI: ' + (m.provider === 'openai' ? 'OpenAI' : 'Anthropic')));
   }
 

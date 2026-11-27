@@ -10,6 +10,8 @@
 //   admin:names       해시  uid → 이름 메모
 //   admin:approved    해시  uid → '1' (랜딩에 쓸 후기)
 //   admin:switches    값    관리자 스위치 JSON (독백 지침·예시 켜기/끄기)
+//   waitlist          해시  연락처 열쇠 → 대기 명단 JSON (소개 페이지에서 남김)
+import { WAIT_MAX, waitKey, type WaitEntry } from '../waitlist';
 import { cleanSwitches, type PromptSwitches } from '../prompts/switches';
 import type { CounterKey } from '../limits';
 import type { Kv } from './kv';
@@ -116,6 +118,29 @@ export class KvStore implements DataStore {
   }
   async setSwitches(s: PromptSwitches) {
     await this.kv.set('admin:switches', JSON.stringify(cleanSwitches(s)));
+  }
+
+  async addWaitlist(e: WaitEntry): Promise<'new' | 'updated' | 'full'> {
+    const k = waitKey(e);
+    const all = (await this.kv.hgetall('waitlist')) || {};
+    if (k in all) {
+      const old = parse<WaitEntry>(all[k]);
+      await this.kv.hset('waitlist', { [k]: JSON.stringify({ ...e, at: old?.at || e.at, updated: e.at }) });
+      return 'updated';
+    }
+    if (Object.keys(all).length >= WAIT_MAX) return 'full';
+    const added = await this.kv.hsetnx('waitlist', k, JSON.stringify(e));
+    return Number(added) === 1 ? 'new' : 'updated';
+  }
+  async removeWaitlist(e: Pick<WaitEntry, 'contact' | 'kind'>) {
+    await this.kv.hdel('waitlist', waitKey(e));
+  }
+  async waitlist(): Promise<WaitEntry[]> {
+    const all = (await this.kv.hgetall('waitlist')) || {};
+    return Object.values(all)
+      .map((v) => parse<WaitEntry>(v))
+      .filter((v): v is WaitEntry => !!v)
+      .sort((a, b) => b.at.localeCompare(a.at));
   }
 
   async adminSnapshot(callLimit = 1000): Promise<AdminSnapshot> {

@@ -49,6 +49,13 @@ export class SupabaseStore implements DataStore {
     return { ...DEFAULT_SWITCHES };
   }
   async setSwitches() {}
+  async addWaitlist(): Promise<'new' | 'updated' | 'full'> {
+    return 'full';
+  }
+  async waitlist() {
+    return [];
+  }
+  async removeWaitlist() {}
   async logCall(r: CallLog) {
     const { error } = await this.db.from('ai_calls').insert({
       uid: r.uid,

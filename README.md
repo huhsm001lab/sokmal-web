@@ -82,3 +82,9 @@ npm run build && npm run e2e
 
 ## 프롬프트를 고칠 때 (원문이 있는 컴퓨터에서)
 `lib/prompts/sokmal-prompts.js` 를 직접 고치고, 이유를 `SOKMAL-개발.md` 에 적어요. `scripts/extract-prompts.mjs` 를 다시 돌리면 시제품 문구로 덮어쓰니 주의하세요. 프롬프트를 바꾸면 `tests/prompt-parity.test.ts` 가 실패하는데, 의도한 변경이면 그 테스트의 기준을 함께 고쳐요.
+
+## 소개 페이지 (따로 떨어진 주소, 11-27)
+- `landing/index.html` 한 장짜리 정적 페이지. Vercel에 **새 프로젝트**로 같은 저장소를 불러오고 Root Directory 를 `landing`, Framework 를 Other 로 두면 따로 배포돼요.
+- 대기 명단은 앱 서버 `/api/waitlist`(다른 주소에서 받음)에 저장되고 관리자 화면 「대기 명단」에서 보고 지워요. 받는 주소를 좁히려면 앱 프로젝트에 `SOKMAL_LANDING_ORIGINS=https://소개-페이지-주소`.
+- 앱 주소가 바뀌면 `landing/index.html` 의 `<meta name="sokmal-app">` 를 고쳐요.
+- 확인: `node e2e/landing.mjs`

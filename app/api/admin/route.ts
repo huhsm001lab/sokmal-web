@@ -31,6 +31,7 @@ export async function GET(req: Request) {
     ...snap,
     monthCostKrw: await s.costSince(kstMonthStartIso()),
     switches: await s.getSwitches(),
+    waitlist: await s.waitlist(),
     meta: {
       storage: storeKind(),
       persistent: ['redis', 'supabase', 'file'].includes(storeKind()),
@@ -45,7 +46,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const s = gate(req);
   if (s instanceof Response) return s;
-  let b: { name?: { uid?: unknown; name?: unknown }; approve?: { uid?: unknown; v?: unknown }; switches?: unknown };
+  let b: { name?: { uid?: unknown; name?: unknown }; approve?: { uid?: unknown; v?: unknown }; switches?: unknown; waitDelete?: { contact?: unknown; kind?: unknown } };
   try {
     b = await req.json();
   } catch {
@@ -54,6 +55,10 @@ export async function POST(req: Request) {
   const okUid = (u: unknown): u is string => typeof u === 'string' && /^[A-Za-z0-9-]{4,80}$/.test(u);
   if (b.name && okUid(b.name.uid) && typeof b.name.name === 'string') {
     await s.setName(b.name.uid, b.name.name.trim().slice(0, 40));
+    return json({ ok: true });
+  }
+  if (b.waitDelete && typeof b.waitDelete.contact === 'string' && (b.waitDelete.kind === 'email' || b.waitDelete.kind === 'phone')) {
+    await s.removeWaitlist({ contact: b.waitDelete.contact, kind: b.waitDelete.kind });
     return json({ ok: true });
   }
   if (b.switches && typeof b.switches === 'object') {

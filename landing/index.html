@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SOKMAL 속말 — 배우와 창작자를 위한 AI 작업실</title>
+<meta name="description" content="쓰기 전에 먼저 묻는 독백 작업실. 배우가 답한 자기 이야기로 독백을 쓰고, 작품은 여러 갈래로 넓게 읽게 돕습니다.">
+<meta property="og:title" content="SOKMAL 속말 — AI가 써 준 독백, 그건 누구의 이야기인가요?">
+<meta property="og:description" content="쓰기 전에 먼저 묻는 독백 작업실. 연기와 선택은 배우가 정합니다.">
+<meta property="og:type" content="website">
+<meta name="sokmal-app" content="https://sokmal-web.vercel.app">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%231F3A5F'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='%23FBFBF9' font-family='sans-serif' font-weight='700'%3E%EC%86%8D%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#FBFBF9;--bg2:#EEF2F8;--card:#FFFFFE;--ink:#1B1F2A;--muted:#5B6270;--line:#D8DBE2;
+  --navy:#1F3A5F;--navy2:#2A4A73;--on-navy:#FBFBF9;--accent:#C2410C;--accent-soft:#FFF1E8;--ok:#1F6F43;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12161D;--bg2:#1A2030;--card:#181D27;--ink:#E8EAEE;--muted:#A3AAB6;--line:#2E3542;
+  --navy:#9DB8E0;--navy2:#2A4A73;--on-navy:#12161D;--accent:#F4A261;--accent-soft:#2A1E16;--ok:#7BC59A;}}
+:root[data-theme="dark"]{
+  --bg:#12161D;--bg2:#1A2030;--card:#181D27;--ink:#E8EAEE;--muted:#A3AAB6;--line:#2E3542;
+  --navy:#9DB8E0;--navy2:#2A4A73;--on-navy:#12161D;--accent:#F4A261;--accent-soft:#2A1E16;--ok:#7BC59A;}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 'Noto Sans KR',system-ui,sans-serif;word-break:keep-all;overflow-wrap:anywhere}
+a{color:inherit}
+.wrap{max-width:1040px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-left)) 0 max(16px,env(safe-area-inset-right))}
+.top{display:flex;align-items:center;gap:10px;padding:16px 0}
+.mark{width:34px;height:34px;border-radius:10px;background:var(--navy);color:var(--on-navy);display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex:none}
+.top b{font-size:17px}
+.top nav{margin-left:auto;display:flex;gap:8px}
+.pill{font-size:14px;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:6px 14px;white-space:nowrap;color:var(--navy);background:var(--card)}
+.btn{display:inline-flex;align-items:center;justify-content:center;font:inherit;font-weight:700;text-decoration:none;border-radius:12px;padding:13px 22px;border:1px solid transparent;cursor:pointer}
+.btn.primary{background:var(--navy);color:var(--on-navy)}
+.btn.ghost{border-color:var(--line);color:var(--navy);background:var(--card)}
+.btn:focus-visible,.pill:focus-visible,.chip:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.eye{color:var(--accent);font-weight:700;font-size:14px;margin:0 0 10px;letter-spacing:.02em}
+h1{font-size:clamp(32px,7.4vw,60px);line-height:1.18;letter-spacing:-.02em;color:var(--navy);margin:0;font-weight:900}
+h2{font-size:clamp(23px,4.6vw,34px);line-height:1.3;letter-spacing:-.01em;color:var(--navy);margin:0 0 10px;font-weight:900}
+.lead{font-size:clamp(16px,2.4vw,19px);color:var(--muted);max-width:640px;margin:20px 0 28px}
+.hero{padding:56px 0 48px}
+.acts{display:flex;flex-wrap:wrap;gap:10px}
+.small{font-size:13px;color:var(--muted);margin:12px 0 0}
+section{padding:56px 0;border-top:1px solid var(--line)}
+.sub{color:var(--muted);margin:0 0 26px;max-width:680px}
+.grid{display:grid;gap:14px}
+@media (min-width:760px){.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:repeat(2,1fr)}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px}
+.card p{margin:0}
+.k{font-weight:700;color:var(--navy);margin:0 0 6px!important}
+.n{color:var(--accent);font-weight:700;font-size:13px;display:block;margin-bottom:4px}
+.soon{border-style:dashed}
+.badge{display:inline-block;font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:1px 10px;margin-left:6px;vertical-align:2px}
+.steps .card{background:var(--bg2);border:0}
+.ask{margin:22px 0 0;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 22px}
+.ask p{margin:6px 0}
+.ask .q{font-weight:700}
+.ask .q::before{content:'Q. ';color:var(--accent)}
+.band{background:var(--navy);color:var(--on-navy);border-radius:20px;padding:32px 26px;border:0}
+.band h2{color:var(--on-navy)}
+.band ul{margin:10px 0 0;padding-left:20px}
+.band li{margin:6px 0}
+.road{display:grid;gap:14px}
+@media (min-width:760px){.road{grid-template-columns:repeat(3,1fr)}}
+.stage{border-top:6px solid var(--navy);padding:16px 2px 0}
+.stage.next{border-top-color:var(--accent)}
+.stage.far{border-top-color:var(--line)}
+.stage b{display:block;font-size:19px;color:var(--navy);margin:2px 0 6px}
+.stage p{margin:0;color:var(--muted)}
+/* 대기 명단 */
+.join{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:26px 22px;max-width:640px}
+label.f{display:block;font-weight:700;font-size:15px;margin:16px 0 6px}
+.hint{font-weight:400;color:var(--muted);font-size:13px}
+input[type=text],input[type=email],textarea{width:100%;font:inherit;font-size:16px;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink)}
+textarea{min-height:84px;resize:vertical}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:inherit;font-size:15px;min-height:40px;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:var(--on-navy)}
+.agree{display:flex;gap:10px;align-items:flex-start;margin:18px 0 0;font-size:14px;color:var(--muted)}
+.agree input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:var(--navy)}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.join .btn{width:100%;margin-top:18px}
+.msg{min-height:22px;margin:12px 0 0;font-size:14px;font-weight:700}
+.msg.err{color:var(--accent)}
+.msg.ok{color:var(--ok)}
+footer{padding:48px 0 64px;text-align:center;border-top:1px solid var(--line)}
+.tag{font-size:clamp(20px,4.4vw,26px);font-weight:900;color:var(--navy);margin:0 0 16px}
+footer .small a{color:var(--navy)}
+@media (prefers-reduced-motion:no-preference){.rise{animation:rise .6s cubic-bezier(.2,.7,.2,1) both}.rise.d1{animation-delay:.08s}.rise.d2{animation-delay:.16s}}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span class="mark" aria-hidden="true">속</span><b>SOKMAL 속말</b>
+    <nav><a class="pill" id="go-app" href="https://sokmal-web.vercel.app">초대 코드로 입장</a></nav>
+  </header>
+
+  <main>
+    <div class="hero">
+      <p class="eye rise">배우와 창작자를 위한 AI 작업실</p>
+      <h1 class="rise d1">AI가 써 준 독백,<br>그건 누구의 이야기인가요?</h1>
+      <p class="lead rise d2">SOKMAL은 쓰기 전에 먼저 묻습니다. 배우가 답한 자기 이야기로 독백을 쓰고, 작품은 여러 갈래로 넓게 읽게 돕습니다. 연기와 선택은 배우가 정합니다.</p>
+      <div class="acts">
+        <a class="btn primary" href="#join">대기 명단에 이름 올리기</a>
+        <a class="btn ghost" id="go-app2" href="https://sokmal-web.vercel.app">초대 코드가 있어요</a>
+      </div>
+      <p class="small">지금은 초대받은 분만 쓰는 시험 기간이에요.</p>
+    </div>
+
+    <section aria-labelledby="t-why">
+      <h2 id="t-why">모두가 AI로 독백을 쓰지만,<br>그 안에 배우의 이야기가 없습니다</h2>
+      <p class="sub">입시와 오디션에서는 자기 이야기로 쓴 창작 독백이 돋보여요. 그래서 많은 사람이 AI로 씁니다.</p>
+      <div class="grid g3">
+        <div class="card"><p class="k">말투만 그럴싸하다</p><p>글은 매끄러운데, 남의 이야기가 나와요. 흔한 소품과 비슷한 장면이 반복돼요.</p></div>
+        <div class="card"><p class="k">설명하는 글이 된다</p><p>사람이 하는 말이 아니라 마음을 풀어 설명하는 글. 연기할 거리가 남지 않아요.</p></div>
+        <div class="card"><p class="k">작품 정보가 틀린다</p><p>짧은 시간에 지정희곡을 읽어야 하는데, 일반 AI는 국내 희곡 줄거리를 자주 틀려요.</p></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="t-how">
+      <h2 id="t-how">쓰기 전에, 먼저 묻습니다</h2>
+      <p class="sub">거창한 사건이 아니어도 돼요. 놓친 고맙다는 말 하나, 하려다 삼킨 말 하나면 충분해요.</p>
+      <div class="grid g3 steps">
+        <div class="card"><span class="n">01</span><p class="k">먼저 묻는다</p><p>누구에게 하는 말인지, 그때 실제로 있었던 일, 오늘 꼭 하고 싶은 한마디.</p></div>
+        <div class="card"><span class="n">02</span><p class="k">배우가 답한다</p><p>내 경험이 재료가 돼요. 연기 방법은 묻지 않아요.</p></div>
+        <div class="card"><span class="n">03</span><p class="k">그 답으로 쓴다</p><p>말투가 아니라 재료가 다른, 그 사람만의 독백. 마음에 든 것만 남겨요.</p></div>
+      </div>
+      <div class="ask" aria-label="쓰기 전에 받는 질문의 예">
+        <p class="small" style="margin:0 0 4px">쓰기 전에 받는 질문은 이런 모양이에요</p>
+        <p class="q">이 말을 누구에게 하나요? 부르는 호칭까지요.</p>
+        <p class="q">그때 실제로 있었던 일 하나를 적어 주세요.</p>
+        <p class="q">오늘 그 사람에게 꼭 전하고 싶은 한마디는요?</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="t-what">
+      <h2 id="t-what">할 수 있는 것</h2>
+      <p class="sub">입시 모드는 빠르고 분명하게, 전문 모드는 주고받으며 깊게.</p>
+      <div class="grid g2">
+        <div class="card"><p class="k">작품 해석</p><p>줄거리·인물은 사실대로. 인물이 한 말과 사실을 나눠 보고, 주제는 여러 갈래로 보여 줘요. 독백으로 쓸 만한 구간도 함께.</p></div>
+        <div class="card"><p class="k">독백 만들기</p><p>묻고 쓰기, 내 초안 다듬기, 책·웹툰·영화의 문장을 내 상황으로 번안하기.</p></div>
+        <div class="card"><p class="k">내 이미지</p><p>사진 없이 자기 서술과 열 가지 질문으로. 정해 주지 않는 참고 자료예요.</p></div>
+        <div class="card"><p class="k">내 기록</p><p>고르고 고친 독백·해석·분석 메모가 남아요.</p></div>
+        <div class="card soon"><p class="k">이야기 설계 <span class="badge">작가용 · 준비 중</span></p><p>주제·인물·갈등·사건을 적으면 비어 있거나 약한 곳을 짚어 줘요. 빈칸을 대신 채우지는 않아요.</p></div>
+        <div class="card soon"><p class="k">연기 대화 <span class="badge">준비 중</span></p><p>연기에 대해 묻고 같이 생각해요. 원리는 분명하게, 선택은 여러 갈래로.</p></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="t-diff">
+      <div class="band">
+        <h2 id="t-diff">글솜씨로 경쟁하지 않습니다</h2>
+        <ul>
+          <li><b>재료가 다르다</b> — 쓰기 전에 물어서 배우 자신의 경험을 꺼내요.</li>
+          <li><b>정보가 맞다</b> — 사람이 검수한 작품 노트를 쌓고 있어요(준비 중).</li>
+          <li><b>내가 고른 게 남는다</b> — 결과만 받지 않고, 고르고 고친 과정이 기록으로 남아요.</li>
+          <li><b>연기는 배우의 몫</b> — 호흡·강약·표정 같은 연기 방식은 지시하지 않아요. 결과는 AI와 함께 쓴 글이라고 밝혀요.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section aria-labelledby="t-next">
+      <h2 id="t-next">지금, 다음, 그리고 비전</h2>
+      <p class="sub">AI는 시야를 넓히고, 답은 배우 안에 남습니다.</p>
+      <div class="road">
+        <div class="stage"><span class="n">지금</span><b>초대받은 배우와 시험 중</b><p>해석·독백·내 이미지·내 기록. 결과마다 짧은 의견을 받아 다듬고 있어요.</p></div>
+        <div class="stage next"><span class="n">다음</span><b>블라인드 비교, 작품 노트</b><p>같은 요청을 일반 AI와 나란히 놓고 비교해요. 지는 기능은 접어요.</p></div>
+        <div class="stage far"><span class="n">비전</span><b>모든 창작자의 작업실</b><p>배우에서 작가·연출로, 다시 PD·제작으로.</p></div>
+      </div>
+    </section>
+
+    <section id="join" aria-labelledby="t-join">
+      <h2 id="t-join">먼저 써 보고 싶다면</h2>
+      <p class="sub">연락처를 남겨 주시면 자리가 날 때 초대 코드를 보내 드려요.</p>
+      <form class="join" id="wait-form" novalidate>
+        <label class="f" for="w-contact">연락처 <span class="hint">이메일 또는 휴대폰 번호 하나</span></label>
+        <input type="text" id="w-contact" name="contact" autocomplete="email" inputmode="email" maxlength="254" placeholder="name@example.com 또는 010-0000-0000" required>
+        <span class="f" id="w-role-l" style="display:block;font-weight:700;font-size:15px;margin:16px 0 6px">하는 일</span>
+        <div class="chips" role="group" aria-labelledby="w-role-l" id="w-role">
+          <button type="button" class="chip" aria-pressed="false">입시생</button>
+          <button type="button" class="chip" aria-pressed="false">배우</button>
+          <button type="button" class="chip" aria-pressed="false">창작자</button>
+          <button type="button" class="chip" aria-pressed="false">감독·연출</button>
+          <button type="button" class="chip" aria-pressed="false">작가</button>
+          <button type="button" class="chip" aria-pressed="false">기타</button>
+        </div>
+        <label class="f" for="w-note">한 줄 <span class="hint">(선택) 무엇을 해 보고 싶은지</span></label>
+        <textarea id="w-note" maxlength="200" placeholder="예) 2차 지정희곡 분석이 막막해요"></textarea>
+        <div class="hp" aria-hidden="true"><label for="w-site">비워 두세요</label><input type="text" id="w-site" tabindex="-1" autocomplete="off"></div>
+        <label class="agree"><input type="checkbox" id="w-agree"><span>연락처와 하는 일을 <b>초대 코드 안내에만</b> 쓰는 데 동의해요. 이름·나이·주소는 받지 않아요. 정식 출시 뒤 또는 지워 달라고 하면 바로 지워요.</span></label>
+        <button type="submit" class="btn primary" id="w-go">대기 명단에 올리기</button>
+        <p class="msg" id="w-msg" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+  </main>
+
+  <footer>
+    <p class="tag">더 넓게 읽고, 내 이야기는 놓치지 않게.</p>
+    <a class="btn ghost" id="go-app3" href="https://sokmal-web.vercel.app">초대 코드로 입장</a>
+    <p class="small">© SOKMAL · 배우가 만든 배우의 작업실</p>
+  </footer>
+</div>
+<script>
+(function () {
+  'use strict';
+  var app = (document.querySelector('meta[name="sokmal-app"]') || {}).content || 'https://sokmal-web.vercel.app';
+  ['go-app', 'go-app2', 'go-app3'].forEach(function (id) { var a = document.getElementById(id); if (a) a.href = app; });
+  var role = '';
+  var chips = document.querySelectorAll('#w-role .chip');
+  chips.forEach(function (c) {
+    c.addEventListener('click', function () {
+      role = c.getAttribute('aria-pressed') === 'true' ? '' : c.textContent;
+      chips.forEach(function (x) { x.setAttribute('aria-pressed', String(x === c && !!role)); });
+    });
+  });
+  var form = document.getElementById('wait-form'), msg = document.getElementById('w-msg'), go = document.getElementById('w-go');
+  function say(t, ok) { msg.textContent = t; msg.className = 'msg ' + (ok ? 'ok' : 'err'); }
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var contact = document.getElementById('w-contact').value.trim();
+    var digits = contact.replace(/[\s-]/g, '');
+    var okMail = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(contact), okPhone = /^01[016789]\d{7,8}$/.test(digits);
+    if (!okMail && !okPhone) { say('이메일 또는 휴대폰 번호(010으로 시작)를 넣어 주세요.'); document.getElementById('w-contact').focus(); return; }
+    if (!role) { say('하는 일을 하나 골라 주세요.'); return; }
+    if (!document.getElementById('w-agree').checked) { say('안내에만 쓰는 데 동의해 주세요.'); return; }
+    go.disabled = true; say('보내는 중…', true);
+    fetch(app + '/api/waitlist', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ contact: contact, role: role, note: document.getElementById('w-note').value, consent: true, website: document.getElementById('w-site').value })
+    }).then(function (r) {
+      if (r.ok) { form.reset(); role = ''; chips.forEach(function (x) { x.setAttribute('aria-pressed', 'false'); }); say('대기 명단에 올렸어요. 자리가 나면 초대 코드를 보내 드릴게요.', true); }
+      else if (r.status === 429) say('잠시 뒤에 다시 보내 주세요.');
+      else if (r.status === 400) say('연락처를 다시 확인해 주세요.');
+      else say('지금은 받을 수 없어요. 잠시 뒤에 다시 시도해 주세요.');
+    }).catch(function () { say('연결이 끊겼어요. 인터넷을 확인하고 다시 보내 주세요.'); })
+      .then(function () { go.disabled = false; });
+  });
+})();
+</script>
+</body>
+</html>

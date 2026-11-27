@@ -19,6 +19,7 @@
 <a class="tile key" href="#monologue"><i>독</i><b>독백 만들기</b><span class="exam-only">내 이야기로 입시·오디션 독백을</span><span class="pro-only">기질·숨기는 방식까지 정해 인물의 말로</span></a>
 <a class="tile" href="#image"><i>나</i><b>내 이미지</b><span>나를 말하면, 참고 자료로 보여 줘요</span></a>
 <a class="tile" href="#records"><i>기</i><b>내 기록</b><span>마음에 든 독백과 해석</span><em id="hub-rec"></em></a>
+<a class="tile wide" href="#talk"><i>대</i><b>연기 대화</b><span>연기를 묻고 같이 생각해요</span><em>준비 중</em></a>
 <a class="tile soft wide" href="#about"><i>S</i><b>SOKMAL 소개</b><span>어떤 서비스인지, 지키는 선</span></a>
 <a class="tile soft wide" href="#admin" id="hub-admin" hidden><i>관</i><b>관리자</b><span>테스터·후기·지표 모아 보기 (송무만 보여요)</span></a>
 </div>
@@ -211,6 +212,29 @@
 </section>
 
 <!-- ④ 창작의 기록 -->
+<section class="view" id="v-talk" hidden>
+<h2>연기 대화</h2>
+<p class="lead">연기에 대해 묻고 같이 생각해요. 답을 정해 주지 않고, 원리와 여러 갈래를 보여 줘요.</p>
+<p class="talk-soon">준비 중인 기능이에요. 지금은 화면만 미리 볼 수 있어요.</p>
+<div class="card">
+<label class="f">붙여서 묻기 <span class="hint">(선택) 내 기록의 독백·해석 하나</span></label>
+<button type="button" class="btn" id="t-attach" disabled>내 기록에서 고르기</button>
+<label class="f">이렇게 물어볼 수 있어요</label>
+<div class="chip-row" id="t-ex">
+<button type="button" class="chip">행동동사가 뭐예요?</button>
+<button type="button" class="chip">대사에서 사실과 주장을 어떻게 나눠요?</button>
+<button type="button" class="chip">자유연기 소재는 어디서 찾아요?</button>
+<button type="button" class="chip">이 인물은 왜 이렇게 말할까요?</button>
+</div>
+</div>
+<div id="t-log" class="talk-log" aria-live="polite"></div>
+<div class="card">
+<label class="f" for="t-q">궁금한 것</label>
+<textarea id="t-q" placeholder="궁금한 걸 적어 주세요" maxlength="1000"></textarea>
+<button type="button" class="btn primary big" id="t-send" disabled>보내기 (준비 중)</button>
+<p class="hint" style="margin:8px 0 0">AI와 함께 나눈 이야기예요. 연기 방식은 정해 주지 않아요.</p>
+</div>
+</section>
 <section class="view" id="v-admin" hidden>
 <h2>관리자</h2>
 <p class="lead">베타 테스터의 사용·지표·후기를 모아 봐요. 테스터 초대와 권한(참여 이상)은 Claude 공유 설정에서 해요.</p>

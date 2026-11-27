@@ -215,3 +215,7 @@ html.gated .wrap{display:none}
 .adm-table td.num{text-align:right;font-variant-numeric:tabular-nums}
 .adm-name{display:flex;gap:4px;align-items:center}
 .adm-name input{width:96px;font:inherit;font-size:13px;padding:5px 6px;border:1px solid var(--line);border-radius:6px}
+
+/* 연기 대화 (화면만, 11-27) */
+.talk-soon{margin:0 0 12px;padding:10px 14px;border-radius:12px;background:#FFF1E8;color:#9A3412;font-size:14px;font-weight:700}
+.talk-log:empty{display:none}

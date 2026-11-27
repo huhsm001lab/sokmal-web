@@ -397,8 +397,8 @@ async function addRec(rec){if(LIMITS.storageCap&&Store.items.length>=LIMITS.stor
 function saveAction(kind,work,tagsFn,titlePrefix){return text=>({label:'기록함에 저장',primary:true,fn:async()=>{const w=(work()||'').trim();const ok=await addRec({kind,title:(w?w+' · ':'')+titlePrefix,body:text,work:w,tags:tagsFn?tagsFn():[],status:'',source:'AI',ref:''});if(ok)toast('기록함에 저장했어요'+(Store.mode==='memory'?' (이 화면에서는 새로고침하면 사라져요)':''));}});}
 
 /* ---------- 탭 ---------- */
-const VIEWS=['home','about','monologue','analysis','image','records','admin']; /* 이미지 분석은 MVP에서 뒤로 — 코드는 남겨 둠 */
-const TITLES={home:'SOKMAL',about:'SOKMAL 소개',monologue:'독백 만들기',analysis:'해석',records:'내 기록',image:'내 이미지',admin:'관리자'};
+const VIEWS=['home','about','monologue','analysis','image','records','talk','admin']; /* 이미지 분석은 MVP에서 뒤로 — 코드는 남겨 둠 */
+const TITLES={home:'SOKMAL',about:'SOKMAL 소개',monologue:'독백 만들기',analysis:'해석',records:'내 기록',talk:'연기 대화',image:'내 이미지',admin:'관리자'};
 
 /* ---------- 모드 (입시 / 전문) ---------- */
 const MODE_KEY='sokmal.mode';
@@ -421,6 +421,8 @@ paintMode();
 const isPro=()=>MODE==='pro';
 function route(){let n=(location.hash||'').replace('#','');if(!VIEWS.includes(n))n='home';VIEWS.forEach(v=>{$('#v-'+v).hidden=v!==n;});$('#back').hidden=n==='home';$('#bar-title').textContent=TITLES[n];window.scrollTo(0,0);if(n==='admin')Admin.open();if(n==='about')paintAboutReview();}
 $('#back').addEventListener('click',()=>{location.hash='#home';});
+/* 연기 대화 (11-27, 화면만 — AI 연결 전): 예시 질문을 누르면 입력칸에 넣기만 함 */
+$('#t-ex').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;$('#t-q').value=b.textContent;$('#t-q').focus();});
 window.addEventListener('hashchange',route);
 
 /* ---------- 공통 전문가 기반(EXPERT) ---------- */

@@ -106,6 +106,7 @@
 
     const notes = [];
     if (!m.persistent) notes.push('저장소가 연결되지 않아 서버가 꺼지면 이 기록이 사라져요. Vercel에서 Upstash Redis를 연결해 주세요.');
+    if (m.notReady) notes.push('AI가 꺼져 있어요: ' + m.notReady + '. Vercel 환경변수를 확인하고 다시 배포해 주세요.');
     if (m.mock) notes.push('지금은 시험 모드(가짜 답)예요. AI 호출·비용은 실제가 아니에요.');
     if (!m.pricesKnown) notes.push('모델 가격 값을 넣지 않아 AI 비용이 0원으로 보여요. 실제 비용은 OpenAI 대시보드에서 확인해 주세요.');
 

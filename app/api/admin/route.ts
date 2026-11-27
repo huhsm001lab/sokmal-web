@@ -1,7 +1,7 @@
 // 관리자 데이터 (관리자 코드 필요): 테스터별 사용, AI 호출·비용, 의견·후기 / 이름 메모·랜딩 후기 표시
 import { adminCheck } from '@/lib/admin';
 import { pricesKnown } from '@/lib/ai';
-import { config, hideKeys } from '@/lib/config';
+import { aiNotReady, config, hideKeys } from '@/lib/config';
 import { kstMonthStartIso } from '@/lib/limits';
 import { cleanSwitches } from '@/lib/prompts/switches';
 import { getStore, json, storeKind } from '@/lib/server';
@@ -39,6 +39,8 @@ export async function GET(req: Request) {
       persistent: ['redis', 'supabase', 'file'].includes(storeKind()),
       provider: config.provider,
       mock: config.mockAi,
+      // AI가 꺼져 있으면 이유(값은 넣지 않고 어느 칸이 문제인지만)
+      notReady: aiNotReady(),
       pricesKnown: pricesKnown(),
       monthlyBudgetKrw: config.monthlyBudgetKrw || null,
     },

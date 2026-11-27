@@ -220,12 +220,12 @@
 <section class="view" id="v-records" hidden>
 <h2>내 기록</h2>
 <p class="lead">마음에 든 독백과 해석을 모아 두어요. <span class="cnt" id="r-count2"></span></p>
-<div class="seg" id="r-seg" hidden><button type="button" class="on" data-v="design">설계</button><button type="button" data-v="mood">분위기</button><button type="button" data-v="box">기록함 <span class="cnt" id="r-count"></span></button></div>
+<div class="seg pro-only" id="r-seg"><button type="button" class="on" data-v="box">기록함 <span class="cnt" id="r-count"></span></button><button type="button" data-v="design">이야기 설계</button><button type="button" data-v="mood" hidden>분위기</button></div>
 
-<div id="r-design" hidden>
+<div id="r-design" class="pro-only" hidden>
 <div class="card">
 <h3>이야기 설계</h3>
-<p class="hint" style="margin:0 0 8px">희곡·대본에 꼭 들어가는 요소를 적어요. 입력한 내용은 자동으로 임시 저장돼요.</p>
+<p class="hint" style="margin:0 0 8px">작가를 위한 기능으로 준비 중이에요. 희곡·대본에 꼭 들어가는 요소를 미리 적어 둘 수 있어요. 입력한 내용은 자동으로 임시 저장돼요.</p>
 <label class="f">작품명 (가제)</label>
 <input type="text" id="d-work">
 <label class="f">형식</label>
@@ -247,7 +247,7 @@
 <label class="f">떡밥 <span class="hint">나중에 회수할 복선</span></label>
 <textarea id="d-plants"></textarea>
 </div>
-<button class="btn big" id="d-check" type="button">빠진 부분 점검하기 (AI)</button>
+<button class="btn big" id="d-check" type="button" disabled>빠진 부분 점검하기 (준비 중)</button>
 <button class="btn primary big" id="d-save" type="button">기록함에 나눠 저장</button>
 <button class="btn big danger" id="d-clear" type="button">설계 비우기</button>
 <div id="d-out"></div>

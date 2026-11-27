@@ -90,6 +90,12 @@ export default function IntroPage() {
           ))}
         </div>
         <p className="in-note">입시 모드는 빠르고 분명하게, 전문 모드는 주고받으며 깊게.</p>
+        <div className="in-card in-soon">
+          <p className="in-k">
+            이야기 설계 <span className="in-badge">작가용 · 준비 중</span>
+          </p>
+          <p>주제·인물·갈등·사건을 적으면 비어 있거나 약한 곳을 짚어 줘요. 빈칸을 대신 채우지는 않아요. 전문 모드에서 칸을 미리 볼 수 있어요.</p>
+        </div>
       </section>
 
       <section className="in-sec in-soft">

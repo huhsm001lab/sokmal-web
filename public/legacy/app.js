@@ -407,6 +407,7 @@ try{const v=localStorage.getItem(MODE_KEY);if(v==='exam'||v==='pro'){MODE=v;CHOS
 function paintMode(){
   document.body.classList.toggle('mode-exam',MODE==='exam');document.body.classList.toggle('mode-pro',MODE==='pro');
   $$('#mode-top button').forEach(b=>b.classList.toggle('on',b.dataset.v===MODE));
+  if(MODE==='exam'){const bx=$('#r-seg button[data-v="box"]');if(bx&&!bx.classList.contains('on'))bx.click();} /* 이야기 설계는 전문 모드에서만 (11-27, 준비 중) */
   $$('#mode-pick button').forEach(b=>b.classList.toggle('on',CHOSEN&&b.dataset.v===MODE));
   const at=$('#a-text');if(at)at.placeholder=MODE==='exam'?'희곡 본문을 붙여 넣어 주세요 (작품명만 적어도 돼요)':'장면이나 대본을 붙여 넣어 주세요';
   if(typeof paintUsage==='function')try{paintUsage();}catch(e){}

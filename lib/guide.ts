@@ -114,3 +114,33 @@ export function appendGuide(text: string, extra: string): string {
   if (!t) return text;
   return `${text}\n\n[관리자 기준 — 위 내용과 부딪히면 이 기준을 따릅니다. 출력 형식은 위의 것을 지킵니다]\n${t}`;
 }
+
+/** 독백 갈래 (11-28): 한 편 대신 같은 재료로 짧은 버전 여러 개. 배우가 고르거나 섞는다 */
+export const VARIANT_TAG = '[갈래 보기]';
+export function variantsWrap(n: number): string {
+  return `${VARIANT_TAG} 이번에는 완성된 한 편 대신, 같은 재료로 짧은 독백 ${n}개를 씁니다. 배우가 보고 고르거나 섞습니다.
+- 인물·상대·상황·배우의 경험과 답은 ${n}개 모두 같습니다. 인물이 상대를 움직이려는 방법(말을 꺼내는 방식, 상대를 대하는 태도, 숨기는 정도)만 서로 다르게 합니다.
+- 갈래마다 요청한 길이의 절반쯤으로 짧게 씁니다.
+- 갈래 이름은 그 갈래의 말하는 방법을 4~10자로만 적습니다(예: 먼저 따지며 / 끝까지 감추며 / 슬쩍 떠보며). 감정 상태나 연기 방법(호흡·표정·속도)을 적지 않습니다.
+- 위의 쓰는 기준은 갈래마다 모두 지킵니다.
+
+[이번 출력 형식 — 위의 출력 형식 대신 이것을 씁니다]
+맨 첫 줄에 [설계] 한 줄(화면에는 보이지 않습니다).
+${Array.from({ length: n }, (_, i) => `## 갈래 ${i + 1} — (말하는 방법)\n(대사)`).join('\n')}
+그 밖의 섹션(더 나답게 만들려면 등)은 쓰지 않습니다.`;
+}
+
+export type Variant = { label: string; text: string };
+/** "## 갈래 1 — 라벨" 단위로 나눈다 */
+export function parseVariants(text: string): Variant[] {
+  const out: Variant[] = [];
+  const re = /^##[ \t]*갈래[ \t]*(\d+)[ \t]*[—\-–:]?[ \t]*(.*)$/gm;
+  const marks = [...text.matchAll(re)];
+  marks.forEach((m, i) => {
+    const start = (m.index ?? 0) + m[0].length;
+    const end = i + 1 < marks.length ? marks[i + 1].index ?? text.length : text.length;
+    const body = text.slice(start, end).trim();
+    if (body) out.push({ label: m[2].trim() || `갈래 ${m[1]}`, text: body });
+  });
+  return out;
+}

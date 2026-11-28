@@ -64,12 +64,13 @@ function makeOut(host){
   const wrap=h('div',{class:'card',hidden:true},h('div',{class:'out-head'},h('strong',{},'결과'),stop),status,pt,body,acts,extra);
   host.append(wrap);
   const o={text:'',meta:null,
-    start(onStop){o.note=null;wrap.hidden=false;body.replaceChildren();pt.replaceChildren();acts.hidden=true;acts.replaceChildren();extra.replaceChildren();status.textContent='생각하는 중… (처음엔 조금 걸려요)';stop.hidden=false;stop.onclick=onStop;wrap.scrollIntoView({behavior:'smooth',block:'start'});},
+    start(onStop){o.note=null;body.hidden=false;wrap.hidden=false;body.replaceChildren();pt.replaceChildren();acts.hidden=true;acts.replaceChildren();extra.replaceChildren();status.textContent='생각하는 중… (처음엔 조금 걸려요)';stop.hidden=false;stop.onclick=onStop;wrap.scrollIntoView({behavior:'smooth',block:'start'});},
     set(t){o.text=t;status.textContent='';if(o.note&&!pt.querySelector('.note-badge'))pt.prepend(h('div',{class:'note-badge'},'✓ 검수된 작품 노트 기준'));if(!pt.firstChild&&/^\s*\[상대\]/m.test(t))pt.append(partnerToggle());renderText(body,t);},
     finish(actions,truncated,ctx){stop.hidden=true;status.textContent=truncated?'답이 길어 중간에 끊겼어요. 입력을 줄여서 다시 시도해 보세요.':'';acts.replaceChildren(...actions.map(a=>h('button',{type:'button',class:'btn small'+(a.primary?' primary':''),onclick:a.fn},a.label)));acts.hidden=false;
       if(ctx){const meta=Object.assign({},o.meta||{});const add=meta.extra?meta.extra(ctx.text):null;const chat=meta.chatCfg&&!isMetaReply(ctx.text)?chatBlock(ctx,meta.chatCfg):null;extra.replaceChildren(add||'',h('p',{class:'ai-note'},'AI와 함께 쓴 글이에요. 고르고 고치고 버리는 건 당신의 몫이에요.'),chat?chat.el:'',isMetaReply(ctx.text)?'':fbBlock(meta,()=>chat?chat.turns():0));}},
     /* 11-27 검수 단계: 쓰는 동안·다듬는 동안 상태 글 */
     phase(p){if(!o.text)status.textContent=p==='review'?'쓴 독백을 기준에 맞춰 다시 살피고 다듬는 중… (조금 더 걸려요)':'쓰는 중…';},
+    hideBody(){body.hidden=true;},
     fail(msg,keepActions){stop.hidden=true;status.textContent=msg;if(!o.text)body.replaceChildren();}
   };
   return o;
@@ -473,15 +474,27 @@ function monoCtx(){
 let mMode='new';
 seg($('#m-mode'),v=>{mMode=v;$('#m-draft-wrap').hidden=v!=='refine';$('#m-adapt-wrap').hidden=v!=='adapt';$('#m-ask').replaceChildren();});
 const mOut=makeOut($('#m-out'));
-function writeMono(c,qa){
+/* 11-28 갈래: 같은 재료로 짧은 버전 여러 개 → 고르거나 섞기 */
+function parseVariants(t){const out=[];const re=/^##[ \t]*갈래[ \t]*(\d+)[ \t]*[—\-–:]?[ \t]*(.*)$/gm;const ms=[...String(t).matchAll(re)];ms.forEach((m,i)=>{const st=m.index+m[0].length;const en=i+1<ms.length?ms[i+1].index:t.length;const body=t.slice(st,en).trim();if(body)out.push({label:(m[2]||'').trim()||'갈래 '+m[1],text:body});});return out;}
+function variantCards(t,c,qa){const vs=parseVariants(t);if(!vs.length)return null;
+  return h('div',{class:'variants'},h('p',{class:'hint',style:'margin:0 0 8px'},'같은 재료, 다른 말하는 방법이에요. 마음에 드는 걸 골라 한 편으로 완성하거나, 여러 갈래에서 줄을 골라 초안 칸에 모아 섞어 보세요.'),
+    ...vs.map((v,i)=>{const b=h('div',{class:'out-body'});renderText(b,v.text);
+      return h('div',{class:'variant card'},h('div',{class:'variant-head'},h('span',{class:'variant-n'},'갈래 '+(i+1)),h('b',{},v.label)),b,
+        h('div',{class:'out-acts'},
+          h('button',{type:'button',class:'btn small primary',onclick:()=>writeMono(Object.assign({},c,{draft:v.text}),qa,{mode:'refine',from:v.label})},'이 갈래로 완성'),
+          h('button',{type:'button',class:'btn small',onclick:()=>{const d=$('#m-draft');d.value=(d.value.trim()?d.value.trim()+'\n\n':'')+v.text;const r=$('#m-mode button[data-v="refine"]');if(r)r.click();d.scrollIntoView({behavior:'smooth',block:'center'});toast('초안 칸에 담았어요. 줄을 고르고 고친 뒤 「독백 만들기」를 눌러 주세요');}},'초안 칸에 담기')));}));}
+function writeMono(c,qa,opt){
+  opt=opt||{};const mode=opt.mode||mMode;const variants=!!opt.variants;
   $('#m-ask').replaceChildren();
   const work=()=>$('#m-work').value;const kw=c.kw;
-  mOut.meta={feature:'독백',chatCfg:c.pro?CHAT.monologue:null,sub:mMode==='refine'?'초안 다듬기':mMode==='adapt'?'번안':(qa&&qa.some(x=>x.a)?'묻고 쓰기':'바로 쓰기'),length:kw.length};
+  mOut.meta={feature:'독백',chatCfg:c.pro&&!variants?CHAT.monologue:null,sub:variants?'갈래 보기':opt.from?'갈래로 완성':mode==='refine'?'초안 다듬기':mode==='adapt'?'번안':(qa&&qa.some(x=>x.a)?'묻고 쓰기':'바로 쓰기'),length:kw.length,
+    extra:variants?(t=>{const cards=variantCards(t,c,qa);if(cards)mOut.hideBody();return cards;}):null};
   if(!gate('mono'))return;
-  runAI({spec:{kind:'mono',c,qa,mMode,hist:MONO_HIST.slice()},out:mOut,btn:$('#m-run'),onDone:t=>{const d=parseDesign(t);if(d&&mMode==='new'){MONO_HIST.push(d);if(MONO_HIST.length>4)MONO_HIST.shift();}},actions:(text)=>[
-    {label:'기록함에 저장',primary:true,fn:()=>saveAction('독백',work,()=>[c.pro?'전문':'입시',...kw.emotion,...kw.situation].slice(0,8),(mMode==='adapt'?'번안 ':'독백 ')+(kw.emotion[0]||kw.situation[0]||new Date().toLocaleDateString('ko-KR')))(cleanText(text)+(mMode==='adapt'&&c.srcFrom?'\n\n— 원작: '+c.srcFrom:'')).fn()},
+  const spec={kind:'mono',c,qa,mMode:mode,hist:MONO_HIST.slice()};if(variants)spec.variants=3;
+  runAI({spec,out:mOut,btn:$('#m-run'),onDone:t=>{const d=parseDesign(t);if(d&&mode==='new'&&!variants){MONO_HIST.push(d);if(MONO_HIST.length>4)MONO_HIST.shift();}},actions:(text)=>variants?[{label:'갈래 다시 보기',fn:()=>writeMono(c,qa,{variants:true})}]:[
+    {label:'기록함에 저장',primary:true,fn:()=>saveAction('독백',work,()=>[c.pro?'전문':'입시',...kw.emotion,...kw.situation].slice(0,8),(mode==='adapt'?'번안 ':'독백 ')+(kw.emotion[0]||kw.situation[0]||new Date().toLocaleDateString('ko-KR')))(cleanText(text)+(mode==='adapt'&&c.srcFrom?'\n\n— 원작: '+c.srcFrom:'')).fn()},
     {label:'복사',fn:()=>copyText(cleanText(text))},
-    {label:'같은 답으로 다시 쓰기',fn:()=>writeMono(c,qa)}]});
+    {label:'같은 답으로 다시 쓰기',fn:()=>writeMono(c,qa,opt)}]});
 }
 $('#m-run').addEventListener('click',async()=>{
   const c=monoCtx();
@@ -500,12 +513,14 @@ $('#m-run').addEventListener('click',async()=>{
   const tas=qs.map(()=>h('textarea',{rows:'2',maxlength:'500',placeholder:'짧게, 떠오르는 대로. 비워 둬도 돼요'}));
   const go=h('button',{type:'button',class:'btn primary'},'이 답으로 독백 쓰기');
   const skip=h('button',{type:'button',class:'btn'},'질문 없이 바로 쓰기');
+  const vars=h('button',{type:'button',class:'btn',id:'m-variants'},'갈래 3개 먼저 보기');
+  vars.addEventListener('click',()=>writeMono(c,qs.map((q,i)=>({q,a:tas[i].value.trim().slice(0,500)})),{variants:true}));
   go.addEventListener('click',()=>writeMono(c,qs.map((q,i)=>({q,a:tas[i].value.trim().slice(0,500)}))));
   skip.addEventListener('click',()=>writeMono(c,null));
   box.replaceChildren(h('div',{class:'card ask'},h('h3',{},'쓰기 전에, 당신 이야기를 조금만'),
     h('p',{class:'hint',style:'margin:0 0 8px'},'답한 만큼 당신의 독백이 돼요. 거창한 일이 아니어도 괜찮아요. 고맙다는 말을 놓친 일, 하려다 삼킨 한마디면 충분해요.'),
     ...qs.map((q,i)=>h('div',{class:'f'},h('label',{class:'f'},q),tas[i])),
-    h('div',{class:'out-acts'},go,skip)));
+    h('div',{class:'out-acts'},go,vars,skip)));
   box.scrollIntoView({behavior:'smooth',block:'start'});tas[0].focus({preventScroll:true});
 });
 

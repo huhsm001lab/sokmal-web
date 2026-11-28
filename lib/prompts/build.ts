@@ -4,7 +4,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import * as P from './sokmal-prompts.js';
 import { LIMITS, type CounterKey } from '../limits';
 import { applyMonoSwitches, DEFAULT_SWITCHES, switchTag, type PromptSwitches } from './switches';
-import { appendGuide, applyMakeGuide, EMPTY_GUIDE, type MonoGuide } from '../guide';
+import { appendGuide, applyMakeGuide, EMPTY_GUIDE, variantsWrap, type MonoGuide } from '../guide';
 import { appendNote, matchNote, type WorkNote } from '../notes';
 
 export class BadInput extends Error {
@@ -242,6 +242,18 @@ export function buildJob(body: unknown, left: LeftFn, sw: PromptSwitches = DEFAU
     case 'mono': {
       const b = parseBase({ ...body, kind: 'mono' }) as MonoBase;
       checkMono(b);
+      // 갈래 보기 (11-28): 새로 쓰기에서만. 짧은 버전 2~3개, 검수는 하지 않음(고른 갈래로 완성할 때 검수)
+      const variants = b.mMode === 'new' && (body.variants === 2 || body.variants === 3) ? body.variants : 0;
+      if (variants) {
+        return {
+          feature: '독백·갈래' + tag,
+          tier: 'main',
+          messages: [user(basePrompt(b, sw, guide) + '\n\n' + variantsWrap(variants))],
+          counter: { key: 'mono', kind: 'run', limit: LIMITS.daily.mono },
+          base: b,
+          refundMeta: true,
+        };
+      }
       return {
         feature: '독백·' + b.mMode + tag,
         tier: 'main',

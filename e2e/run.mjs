@@ -177,6 +177,24 @@ try {
     assert.doesNotMatch(saved[0].body, /\[설계\]|상대:/, '상대 보기를 끄면 상대 줄 없이 저장');
   });
 
+  await step('독백 갈래: 질문 → 갈래 3개 → 하나로 완성 (각각 독백 1회)', async () => {
+    await page.goto(BASE + '/#monologue');
+    await page.fill('#m-story', '친구가 내 오디션 날 연락이 없었다.');
+    await page.click('#m-run');
+    await page.locator('#m-ask #m-variants').waitFor({ timeout: 15000 });
+    await page.click('#m-ask #m-variants');
+    await page.locator('#m-out .variant').nth(2).waitFor({ timeout: 15000 });
+    assert.equal(await page.locator('#m-out .variant').count(), 3);
+    assert.match(await page.locator('#m-out .variant').first().textContent(), /먼저 따지며/);
+    assert.equal(await page.locator('#m-out > .card > .out-body').first().isVisible(), false, '갈래 카드만 보이고 원문은 숨김');
+    const before = (await usage()).mono.run;
+    await page.screenshot({ path: OUT + '04b-mono-variants.png', fullPage: true });
+    await page.locator('#m-out .variant').nth(1).locator('button', { hasText: '이 갈래로 완성' }).click();
+    await page.waitForFunction(() => !document.querySelector('#m-out .variant'), null, { timeout: 15000 });
+    await waitDone('#m-out');
+    assert.equal((await usage()).mono.run, before + 1);
+  });
+
   await step('전문 모드 해석: 이어서 생각 넓히기 (원래 요청을 서버가 다시 쌓음)', async () => {
     await page.goto(BASE + '/#analysis');
     await page.locator('#mode-top button[data-v="pro"]').click();

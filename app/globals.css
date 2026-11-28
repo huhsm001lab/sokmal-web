@@ -246,3 +246,9 @@ details.adm-row summary{cursor:pointer;font-size:14px}
 .note-ta{min-height:110px}
 .note-form{border-top:1px solid var(--line);margin-top:10px;padding-top:6px}
 .note-badge{display:inline-block;font-size:13px;font-weight:700;color:var(--navy);background:var(--soft);border-radius:999px;padding:4px 12px;margin:0 0 8px}
+/* 독백 갈래 (11-28) */
+.variants{margin-top:6px}
+.variant{margin:10px 0;padding:14px 16px}
+.variant-head{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+.variant-n{font-size:12px;font-weight:700;color:#C2410C}
+@media (min-width:900px){.variants{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.variants>.hint{grid-column:1/-1}.variant{margin:0}}

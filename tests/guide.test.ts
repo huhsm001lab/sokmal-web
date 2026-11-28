@@ -67,3 +67,31 @@ describe('저장', () => {
     expect(typeof rv[0].at).toBe('string');
   });
 });
+
+describe('독백 갈래 (11-28)', () => {
+  it('갈래 요청 문구와 나누기', async () => {
+    const { variantsWrap, parseVariants, VARIANT_TAG } = await import('@/lib/guide');
+    const w = variantsWrap(3);
+    expect(w.startsWith(VARIANT_TAG)).toBe(true);
+    expect(w).toContain('## 갈래 3 — (말하는 방법)');
+    expect(w).toContain('연기 방법(호흡·표정·속도)을 적지 않습니다');
+    const v = parseVariants('[설계] x\n## 갈래 1 — 먼저 따지며\n왜 말 안 했어?\n## 갈래 2 - 끝까지 감추며\n괜찮아.\n## 갈래 3\n혹시?');
+    expect(v.map((x) => x.label)).toEqual(['먼저 따지며', '끝까지 감추며', '갈래 3']);
+    expect(v[0].text).toBe('왜 말 안 했어?');
+  });
+  it('서버: 새로 쓰기에서만, 횟수는 독백 1회, 검수 안 함', async () => {
+    const { buildJob } = await import('@/lib/prompts/build');
+    const { EMPTY_GUIDE } = await import('@/lib/guide');
+    const c = { pro: false, kw: { mtype: '입시 독백', writer: '', emotion: [], situation: [], listener: [], mood: [], temper: [], hide: '', length: '1분' }, story: '이야기', draft: '초안', memo: '', src: '', srcFrom: '', mat: '' };
+    const g = { ...EMPTY_GUIDE, review: '검수', reviewOn: true };
+    const sw = { monoRules: true, monoExamples: true };
+    const j = buildJob({ kind: 'mono', c, qa: null, mMode: 'new', hist: [], variants: 3 }, () => 5, sw, g);
+    expect(j.feature).toBe('독백·갈래');
+    expect(j.review).toBeUndefined();
+    expect(j.counter).toEqual({ key: 'mono', kind: 'run', limit: 10 });
+    expect(String(j.messages[0].content)).toContain('[갈래 보기]');
+    const r = buildJob({ kind: 'mono', c, qa: null, mMode: 'refine', hist: [], variants: 3 }, () => 5, sw, g);
+    expect(r.feature).toBe('독백·refine');
+    expect(r.review).toBe('검수');
+  });
+});

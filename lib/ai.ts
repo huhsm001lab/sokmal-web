@@ -214,7 +214,11 @@ async function mockRun(job: Job, model: string, signal: AbortSignal, onText: (d:
   const isReview = typeof last?.content === 'string' && last.content.startsWith('[검수 단계');
   const isVariants = typeof last?.content === 'string' && last.content.includes('[갈래 보기]');
   const isLine = typeof last?.content === 'string' && last.content.includes('[고칠 줄]');
-  const text = isLine
+  const first0 = job.messages[0];
+  const isTalk = typeof first0?.content === 'string' && first0.content.includes('[연기 대화]');
+  const text = isTalk
+    ? `(가짜 답) 행동동사는 상대를 움직이려는 말의 작용이에요. 이렇게 보면 "따지다", 저렇게 보면 "떠보다"로도 읽혀요. 고르는 건 배우의 몫이에요. (주고받은 횟수 ${Math.ceil(job.messages.length / 2)})\n- 이 장면에서 인물이 상대에게 가장 얻고 싶은 건 뭘까요?`
+    : isLine
     ? '- (가짜) 다른 말 하나\n- (가짜) 다른 말 둘\n- (가짜) 다른 말 셋'
     : isVariants
     ? '[설계] 미안하다는 말 ｜ 세 갈래\n## 갈래 1 — 먼저 따지며\n(가짜 답) 왜 말 안 했어? 나만 몰랐잖아.\n## 갈래 2 — 끝까지 감추며\n(가짜 답) 아니야, 괜찮아. 진짜 괜찮다니까.\n## 갈래 3 — 슬쩍 떠보며\n(가짜 답) 혹시… 나한테 할 말 있어?'

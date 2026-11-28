@@ -98,7 +98,7 @@ async function runAI({spec,out,btn,actions,onDone}){
 
 /* ---------- 설정값 (기획 확정: 숫자는 설정값으로 분리) ---------- */
 const LIMITS={
-  daily:{exam:5,pro:5,mono:10},   // 해석 학습 하루 사용 횟수(모드별, 계정 단위). 1회 = 요청 하나 + 답 하나. 독백은 모드 합산 10회[기본안]. 실제로 막는 건 서버(lib/limits.ts) — 화면 표시용 값
+  daily:{exam:5,pro:5,mono:10,line:30,talk:20},   // 해석 학습 하루 사용 횟수(모드별, 계정 단위). 1회 = 요청 하나 + 답 하나. 독백은 모드 합산 10회[기본안]. 실제로 막는 건 서버(lib/limits.ts) — 화면 표시용 값
   maxText:80000,          // 한 번에 받는 본문 글자 수(임시값, 측정 후 조정). 넘으면 나눠 넣도록 안내, 자동 잘라 쓰기 없음
   storageCap:null         // 저장함 보관 총 개수 상한(미정 → null = 제한 없음)
 };
@@ -150,9 +150,11 @@ function useOne(m,kind){return Promise.resolve(true);} /* 서버가 이미 셌�
 function paintUsage(){
   const el=$('#a-usage');if(el&&MODE){const l=leftToday(MODE);el.textContent=(MODE==='exam'?'입시':'전문')+' 모드 · 오늘 남은 횟수 '+l+' / '+LIMITS.daily[MODE];el.classList.toggle('out',l===0);}
   const hl=$('#hub-left');if(hl&&MODE)hl.textContent='오늘 '+leftToday(MODE)+'번 남음';
+  const tu=$('#t-usage');if(tu){const l=leftToday('talk');tu.textContent='연기 대화 · 오늘 남은 횟수 '+l+' / '+LIMITS.daily.talk;tu.classList.toggle('out',l===0);}
+  const ht=$('#hub-talk');if(ht)ht.textContent='오늘 '+leftToday('talk')+'번 남음';
   $$('.chat-left').forEach(x=>{x.textContent='오늘 남은 횟수 '+leftToday(x.dataset.m)+' / '+LIMITS.daily[x.dataset.m];});
 }
-function gate(m){if(leftToday(m)>0)return true;Api.hit(m);toast(m==='mono'?'오늘은 독백 '+LIMITS.daily.mono+'번을 모두 썼어요. 내일 다시 열려요':'오늘은 '+(m==='exam'?'입시':'전문')+' 모드 '+LIMITS.daily[m]+'번을 모두 썼어요. 내일 다시 열려요');return false;}
+function gate(m){if(leftToday(m)>0)return true;Api.hit(m);toast(m==='talk'?'오늘은 연기 대화 '+LIMITS.daily.talk+'번을 모두 썼어요. 내일 다시 열려요':m==='mono'?'오늘은 독백 '+LIMITS.daily.mono+'번을 모두 썼어요. 내일 다시 열려요':'오늘은 '+(m==='exam'?'입시':'전문')+' 모드 '+LIMITS.daily[m]+'번을 모두 썼어요. 내일 다시 열려요');return false;}
 const isMetaReply=t=>/^\s*\[(확인|모름)\]/.test(String(t));
 function cleanText(t){let x=String(t).replace(/^\s*\[(메모|설계)\].*$/gm,'');x=partnerOn()?x.replace(/^\s*\[상대\]\s*/gm,'  상대: '):x.replace(/^\s*\[상대\].*\n?/gm,'');return x.replace(/\n{3,}/g,'\n\n').trim();}
 function partnerOn(){return !document.body.classList.contains('hide-partner');}
@@ -424,8 +426,37 @@ paintMode();
 const isPro=()=>MODE==='pro';
 function route(){let n=(location.hash||'').replace('#','');if(!VIEWS.includes(n))n='home';VIEWS.forEach(v=>{$('#v-'+v).hidden=v!==n;});$('#back').hidden=n==='home';$('#bar-title').textContent=TITLES[n];window.scrollTo(0,0);if(n==='admin')Admin.open();if(n==='about')paintAboutReview();}
 $('#back').addEventListener('click',()=>{location.hash='#home';});
-/* 연기 대화 (11-27, 화면만 — AI 연결 전): 예시 질문을 누르면 입력칸에 넣기만 함 */
+/* 11-28 연기 대화: 원리는 분명하게, 선택은 여러 갈래. 질문·답만 들고 서버가 규칙을 붙여 다시 쌓는다 */
+const Talk={log:[],attach:null,busy:false,ctl:null,fb:null};
 $('#t-ex').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;$('#t-q').value=b.textContent;$('#t-q').focus();});
+function paintAttach(){const box=$('#t-attached');if(!Talk.attach){box.replaceChildren();return;}
+  box.replaceChildren(h('div',{class:'chip-row',style:'margin:4px 0 8px'},h('span',{class:'chip on'},'붙인 것: '+Talk.attach.title),h('button',{type:'button',class:'chip',onclick:()=>{Talk.attach=null;paintAttach();}},'빼기')));}
+$('#t-attach').addEventListener('click',()=>{const pick=$('#t-pick');if(!pick.hidden){pick.hidden=true;return;}
+  const items=(Store.items||[]).filter(r=>r&&r.body).slice(0,30);
+  pick.replaceChildren(items.length?h('div',{class:'t-pick-list'},items.map(r=>h('button',{type:'button',class:'chip t-pick-item',onclick:()=>{Talk.attach={title:String(r.title||r.kind||'기록').slice(0,200),body:String(r.body).slice(0,8000)};pick.hidden=true;paintAttach();toast('붙였어요. 이 기록에 대해 물어보세요');}},(r.kind?r.kind+' · ':'')+String(r.title||'').slice(0,40)))):h('p',{class:'hint'},'내 기록이 아직 없어요. 독백이나 해석을 저장하면 여기서 고를 수 있어요.'));
+  pick.hidden=false;});
+$('#t-new').addEventListener('click',()=>{if(Talk.busy)return;Talk.log=[];Talk.fb=null;$('#t-log').replaceChildren();toast('새 대화를 시작해요');});
+async function talkSend(){
+  const ta=$('#t-q');const q=ta.value.trim();if(!q||Talk.busy)return;
+  if(!Api.ready){toast('이 화면에서는 AI 기능을 쓸 수 없어요');return;}
+  if(!gate('talk')){paintUsage();return;}
+  Talk.busy=true;const send=$('#t-send'),stop=$('#t-stop');send.disabled=true;stop.hidden=false;ta.value='';
+  const log=$('#t-log');const qEl=h('div',{class:'turn-q'},q);const body=h('div',{class:'out-body turn-a'});const st=h('div',{class:'status'},'생각하는 중…');const acts=h('div',{class:'out-acts'});
+  const card=h('div',{class:'card talk-turn'},qEl,st,body,acts);log.append(card);qEl.scrollIntoView({behavior:'smooth',block:'start'});
+  Talk.ctl=new AbortController();stop.onclick=()=>Talk.ctl.abort();
+  try{
+    const spec={kind:'talk',q,turns:Talk.log.slice()};if(Talk.attach)spec.attach=Talk.attach;
+    const r=await Api.run(spec,{signal:Talk.ctl.signal,onText:t=>{st.textContent='';renderText(body,t);}});
+    renderText(body,r.text);st.textContent=r.truncated?'답이 길어 중간에 끊겼어요.':'';Talk.log.push({q,a:r.text});
+    acts.replaceChildren(h('button',{type:'button',class:'btn small',onclick:()=>copyText(r.text)},'복사'),
+      h('button',{type:'button',class:'btn small primary',onclick:()=>saveAction('메모',()=>'',()=>['연기 대화'],'연기 대화 · '+q.slice(0,24))('Q. '+q+'\n\n'+r.text).fn()},'내 기록에 저장'));
+    if(!Talk.fb)Talk.fb=fbBlock({feature:'연기 대화'},()=>Talk.log.length);
+    log.append(Talk.fb); /* 의견 칸은 늘 대화 맨 아래 */
+  }catch(e){st.textContent=errCopy(e);if(e&&e.text)renderText(body,e.text);}
+  Talk.busy=false;send.disabled=false;stop.hidden=true;Api.usage();
+}
+$('#t-send').addEventListener('click',talkSend);
+$('#t-q').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();talkSend();}});
 window.addEventListener('hashchange',route);
 
 /* ---------- 공통 전문가 기반(EXPERT) ---------- */

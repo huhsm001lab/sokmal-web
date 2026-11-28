@@ -4,7 +4,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import * as P from './sokmal-prompts.js';
 import { LIMITS, type CounterKey } from '../limits';
 import { applyMonoSwitches, DEFAULT_SWITCHES, switchTag, type PromptSwitches } from './switches';
-import { appendGuide, applyMakeGuide, EMPTY_GUIDE, linePrompt, variantsWrap, type MonoGuide } from '../guide';
+import { appendGuide, applyMakeGuide, EMPTY_GUIDE, linePrompt, talkPrompt, variantsWrap, type MonoGuide } from '../guide';
 import { appendNote, matchNote, type WorkNote } from '../notes';
 
 export class BadInput extends Error {
@@ -262,6 +262,34 @@ export function buildJob(body: unknown, left: LeftFn, sw: PromptSwitches = DEFAU
         base: b,
         refundMeta: true,
         ...(guide.reviewOn && guide.review ? { review: guide.review } : {}),
+      };
+    }
+    case 'talk': {
+      // 연기 대화 (11-28): 첫 메시지에 규칙(+관리자 기준, 붙인 기록)을 싣고 질문·답을 이어 쌓는다. 하루 'talk' 횟수
+      const q = str(body.q, 2000, '질문').trim();
+      if (!q) throw new BadInput('bad_request', '질문');
+      const rawTurns = Array.isArray(body.turns) ? body.turns : [];
+      if (rawTurns.length >= MAX_CHAT_TURNS) throw new BadInput('prompt_too_large', '대화 길이');
+      const turns = rawTurns.map((t, i) => {
+        const o = isObj(t) ? t : {};
+        return { q: str(o.q, 2000, `질문${i}`), a: str(o.a, 20000, `답${i}`) };
+      });
+      const at = isObj(body.attach) ? body.attach : null;
+      const attach = at ? { title: str(at.title, 200, '붙인 기록 제목'), body: str(at.body, 8000, '붙인 기록') } : null;
+      const sys = appendGuide(talkPrompt(P.EXPERT, attach && attach.body ? attach : null), guide.talk);
+      const all = [...turns.map((t) => t.q), q];
+      const msgs: Anthropic.Beta.BetaMessageParam[] = [user(`${sys}\n\n[배우의 말]\n${all[0]}`)];
+      turns.forEach((t, i) => {
+        msgs.push({ role: 'assistant', content: t.a });
+        msgs.push(user(all[i + 1]));
+      });
+      return {
+        feature: '연기 대화',
+        tier: 'main',
+        messages: msgs,
+        counter: { key: 'talk', kind: turns.length ? 'follow' : 'run', limit: LIMITS.daily.talk },
+        base: null,
+        refundMeta: false,
       };
     }
     case 'mono_line': {

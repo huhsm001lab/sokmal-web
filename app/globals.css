@@ -217,7 +217,6 @@ html.gated .wrap{display:none}
 .adm-name input{width:96px;font:inherit;font-size:13px;padding:5px 6px;border:1px solid var(--line);border-radius:6px}
 
 /* 연기 대화 (화면만, 11-27) */
-.talk-soon{margin:0 0 12px;padding:10px 14px;border-radius:12px;background:#FFF1E8;color:#9A3412;font-size:14px;font-weight:700}
 .talk-log:empty{display:none}
 /* 관리자: 독백 지침 스위치 (11-27) */
 .sw-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);cursor:pointer}
@@ -266,3 +265,8 @@ details.adm-row summary{cursor:pointer;font-size:14px}
 .le-keep{color:var(--muted)}
 .le-gap{height:10px}
 .le-foot{margin:8px 0 0;font-size:13px;color:var(--muted)}
+/* 연기 대화 (11-28) */
+.talk-turn{margin:10px 0}
+.talk-turn .turn-q{font-weight:700;color:var(--navy);margin:0 0 8px}
+.t-pick-list{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;max-height:220px;overflow:auto}
+.t-pick-item{text-align:left;height:auto;white-space:normal}

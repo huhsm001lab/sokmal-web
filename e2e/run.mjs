@@ -231,6 +231,25 @@ try {
     await page.screenshot({ path: OUT + '05-analysis-pro.png', fullPage: true });
   });
 
+  await step('연기 대화: 예시 질문 → 답 → 이어 묻기, 기록 붙이기, 횟수 2 (하루 20)', async () => {
+    await page.goto(BASE + '/#talk');
+    await page.waitForFunction(() => /20/.test(document.querySelector('#t-usage')?.textContent || ''));
+    await page.locator('#t-ex .chip', { hasText: '행동동사가 뭐예요?' }).click();
+    await page.click('#t-send');
+    await page.locator('#t-log .talk-turn .out-acts button', { hasText: '복사' }).first().waitFor({ timeout: 15000 });
+    assert.match(await page.locator('#t-log .talk-turn').first().textContent(), /고르는 건 배우의 몫/);
+    await page.click('#t-attach');
+    await page.locator('#t-pick .t-pick-item').first().click();
+    assert.match(await page.locator('#t-attached').textContent(), /붙인 것/);
+    await page.fill('#t-q', '이 독백에서 인물이 원하는 건 뭘까요?');
+    await page.click('#t-send');
+    await page.locator('#t-log .talk-turn').nth(1).locator('.out-acts button').first().waitFor({ timeout: 15000 });
+    assert.match(await page.locator('#t-log .talk-turn').nth(1).textContent(), /주고받은 횟수 2/);
+    assert.equal((await usage()).talk.run + (await usage()).talk.follow, 2);
+    assert.equal(await page.locator('#t-log .fb').count(), 1, '의견 칸은 하나만');
+    await page.screenshot({ path: OUT + '06-talk.png', fullPage: true });
+  });
+
   await step('화면 오류 없음', async () => {
     const real = errors.filter((e) => !/fonts\.g|Failed to load resource.*(429|400|401)/.test(e));
     assert.deepEqual(real, []);

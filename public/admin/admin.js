@@ -101,7 +101,8 @@
     const all = testers.flatMap((t) => ((t.feedback && t.feedback.entries) || []).map((e) => Object.assign({ _who: label(t) }, e)));
     const rvs = testers.filter((t) => t.feedback && t.feedback.review && t.feedback.review.text);
     const sum = (f) => testers.reduce((a, t) => a + f(t), 0);
-    const useOf = (t) => ['exam', 'pro', 'mono'].reduce((a, k) => a + t.totals[k].run + t.totals[k].follow, 0);
+    const tot = (t, k) => (t.totals[k] ? t.totals[k].run + t.totals[k].follow : 0);
+    const useOf = (t) => ['exam', 'pro', 'mono', 'talk'].reduce((a, k) => a + tot(t, k), 0);
     const m = d.meta || {};
 
     const notes = [];
@@ -112,7 +113,7 @@
 
     const stats = h('div', { class: 'adm-stats admin-stats' },
       h('div', {}, h('b', {}, testers.length), h('span', {}, '참여 테스터')),
-      h('div', {}, h('b', {}, sum(useOf)), h('span', {}, 'AI 사용 (해석·독백)')),
+      h('div', {}, h('b', {}, sum(useOf)), h('span', {}, 'AI 사용 (해석·독백·연기 대화)')),
       h('div', {}, h('b', {}, sum((t) => t.calls)), h('span', {}, 'AI 호출 (질문 만들기 포함)')),
       h('div', {}, h('b', {}, won(d.monthCostKrw)), h('span', {}, '이번 달 AI 비용' + (m.monthlyBudgetKrw ? ' / 상한 ' + won(m.monthlyBudgetKrw) : ''))),
       h('div', {}, h('b', {}, all.length), h('span', {}, '보낸 의견')),
@@ -120,7 +121,7 @@
 
     /* 테스터 표 */
     const tTable = h('table', { class: 'adm-table' },
-      h('thead', {}, h('tr', {}, ['이름 메모', '코드', '처음', '마지막', '쓴 날', '해석 입시', '해석 전문', '독백', '한도 걸림', 'AI 호출', '비용', '의견', '후기'].map((x) => h('th', {}, x)))),
+      h('thead', {}, h('tr', {}, ['이름 메모', '코드', '처음', '마지막', '쓴 날', '해석 입시', '해석 전문', '독백', '줄 고치기', '연기 대화', '한도 걸림', 'AI 호출', '비용', '의견', '후기'].map((x) => h('th', {}, x)))),
       h('tbody', {}, testers.map((t) => {
         const inp = h('input', { type: 'text', value: t.name || '', placeholder: '이름', maxlength: '40', 'aria-label': '이름 메모 ' + (t.code || t.uid.slice(-4)) });
         const save = h('button', { type: 'button', class: 'btn small' }, '저장');
@@ -131,7 +132,7 @@
           if (r.status === 200) { t.name = inp.value.trim(); toast('이름 메모를 저장했어요'); render(d); } else toast('저장하지 못했어요');
         });
         const fb = t.feedback || {};
-        const hits = t.totals.exam.hits + t.totals.pro.hits + t.totals.mono.hits;
+        const hits = ['exam', 'pro', 'mono', 'line', 'talk'].reduce((a, k) => a + (t.totals[k] ? t.totals[k].hits : 0), 0);
         return h('tr', {},
           h('td', {}, h('div', { class: 'adm-name' }, inp, save)),
           h('td', {}, t.code || '-'),
@@ -139,6 +140,8 @@
           h('td', { class: 'num' }, t.totals.exam.run + t.totals.exam.follow),
           h('td', { class: 'num' }, t.totals.pro.run + t.totals.pro.follow),
           h('td', { class: 'num' }, t.totals.mono.run + t.totals.mono.follow),
+          h('td', { class: 'num' }, tot(t, 'line')),
+          h('td', { class: 'num' }, tot(t, 'talk')),
           h('td', { class: 'num' }, hits),
           h('td', { class: 'num' }, t.calls), h('td', { class: 'num' }, won(t.costKrw)),
           h('td', { class: 'num' }, (fb.entries || []).length),

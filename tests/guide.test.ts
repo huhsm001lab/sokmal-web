@@ -110,3 +110,25 @@ describe('내 말로 고치기 (11-28)', () => {
     expect(parseLineOptions('- 하나\n• "둘"\n그냥 글\n- 셋\n- 넷')).toEqual(['하나', '둘', '셋']);
   });
 });
+
+describe('연기 대화 (11-28)', () => {
+  it('첫 메시지에 규칙·관리자 기준·붙인 기록, 이어 묻기는 follow로 셈', async () => {
+    const { buildJob } = await import('@/lib/prompts/build');
+    const { EMPTY_GUIDE } = await import('@/lib/guide');
+    const g = { ...EMPTY_GUIDE, talk: '행동동사는 배우가 고른다' };
+    const sw = { monoRules: true, monoExamples: true };
+    const j1 = buildJob({ kind: 'talk', q: '행동동사가 뭐예요?', turns: [] }, () => 5, sw, g);
+    const t = String(j1.messages[0].content);
+    expect(t).toContain('[연기 대화]');
+    expect(t).toContain('실존 배우를 평가하거나');
+    expect(t).toContain('행동동사는 배우가 고른다');
+    expect(t.endsWith('[배우의 말]\n행동동사가 뭐예요?')).toBe(true);
+    expect(j1.counter).toEqual({ key: 'talk', kind: 'run', limit: 20 });
+    const j2 = buildJob({ kind: 'talk', q: '그럼 장애물은요?', turns: [{ q: '행동동사가 뭐예요?', a: '답1' }], attach: { title: '내 독백', body: '왔네.' } }, () => 5, sw, g);
+    expect(j2.messages.map((m) => m.role)).toEqual(['user', 'assistant', 'user']);
+    expect(String(j2.messages[0].content)).toContain('[배우가 붙인 내 기록');
+    expect(j2.messages[2].content).toBe('그럼 장애물은요?');
+    expect(j2.counter?.kind).toBe('follow');
+    expect(() => buildJob({ kind: 'talk', q: ' ', turns: [] }, () => 5)).toThrow();
+  });
+});

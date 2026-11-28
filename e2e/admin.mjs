@@ -61,7 +61,11 @@ try {
   await a.waitForFunction(() => /맞지 않는/.test(document.querySelector('#adm-msg')?.textContent || ''), null, { timeout: 5000 });
   await a.fill('#adm-code', ADMIN);
   await a.click('#adm-go');
-  await a.locator('.adm-table').first().waitFor({ timeout: 8000 });
+  await a.locator('#adm-nav').waitFor({ timeout: 8000 });
+  const go = (k) => a.click('#adm-nav [data-k="' + k + '"]');
+  assert.match(await a.locator('.adm-sec[data-k="home"]').textContent(), /할 일[\s\S]*지금 설정/, '한눈에 화면이 처음에 보여야 함');
+  await go('people');
+  await a.locator('.adm-sec:not([hidden]) .adm-table').first().waitFor({ timeout: 8000 });
   const text = await a.locator('#adm-body').textContent();
   assert.match(text, /705162/, '테스터 코드가 보여야 함');
   assert.match(text, /첫 의견이에요/, '한 줄 의견이 보여야 함');
@@ -69,17 +73,20 @@ try {
   assert.match(text, /해석·exam/, 'AI 호출이 보여야 함');
   assert.match(text, /서버 메모리/, '저장소 종류가 보여야 함');
   // 이름 메모
-  const row = a.locator('.adm-table tbody tr', { hasText: '705162' }).first();
+  const row = a.locator('.adm-sec[data-k="people"] .adm-table tbody tr', { hasText: '705162' }).first();
   await row.locator('input').fill('김배우');
   await row.locator('button', { hasText: '저장' }).click();
   await a.waitForTimeout(500);
   await a.reload();
-  await a.locator('.adm-table').first().waitFor({ timeout: 8000 });
-  assert.equal(await a.locator('.adm-table tbody tr', { hasText: '705162' }).first().locator('input').inputValue(), '김배우');
+  await a.locator('.adm-sec:not([hidden]) .adm-table').first().waitFor({ timeout: 8000 });
+  assert.equal(await a.locator('.adm-sec[data-k="people"] .adm-table tbody tr', { hasText: '705162' }).first().locator('input').inputValue(), '김배우');
   // 랜딩 후보 표시
+  await go('voice');
   await a.locator('button', { hasText: '랜딩에 쓸 후기로 표시' }).click();
   await a.locator('.tag.ok', { hasText: '랜딩 후보' }).waitFor({ timeout: 5000 });
   // 독백 지침 스위치: 끄면 새로고침 뒤에도 꺼져 있음
+  await go('rules');
+  assert.match(await a.locator('.def-box pre').textContent(), /말하려는 것 하나/, '기본 쓰는 기준 7줄이 보여야 함');
   assert.equal(await a.isChecked('#sw-monoRules'), true, '지침은 처음에 켜져 있어야 함');
   await a.click('#sw-monoRules');
   await a.waitForFunction(() => /꺼짐/.test(document.querySelector('label[for="sw-monoRules"] .sw-state')?.textContent || ''), null, { timeout: 5000 });
@@ -90,6 +97,9 @@ try {
   // 지침 다시 켜고, 제작·검수 기준 저장 → 독백 1번 → 배우는 최종본을 받고, 관리자에 검수 기록
   await a.click('#sw-monoRules');
   await a.waitForFunction(() => /켜짐/.test(document.querySelector('label[for="sw-monoRules"] .sw-state')?.textContent || ''), null, { timeout: 5000 });
+  await a.click('.def-box summary');
+  await a.click('#guide-load-default');
+  assert.match(await a.locator('#guide-make').inputValue(), /^\[쓰는 기준/, '기본 7줄을 제작 기준 칸으로 불러와야 함');
   await a.fill('#guide-make', '01. 대사의 자연스러움\n* 읽기 좋은 글보다 말하기 좋은 대사');
   await a.fill('#guide-review', '01. 창작 독백 평가표 (100점 만점)');
   await a.check('#guide-review-on');
@@ -105,11 +115,13 @@ try {
   const done = lines.find((l) => l.done);
   assert.ok(done && done.text.includes('(검수 뒤 최종본)') && !done.text.includes('수정 전 총점'), '배우는 검수 내용 없이 최종본만 받아야 함');
   await a.reload();
+  await go('logs');
   await a.locator('summary', { hasText: '점수 71 → 84' }).waitFor({ timeout: 8000 });
   assert.equal(await a.locator("#guide-exam").inputValue(), "입시 해석은 인물별 주장과 사실을 꼭 나눈다", "해석 입시 기준이 저장돼야 함");
   assert.match(await a.locator(".guide-tabs button", { hasText: "해석 입시" }).textContent(), /•/);
   assert.match(await a.locator('#adm-body').textContent(), /독백·new \[제작 기준\]·검수/, 'AI 호출 기록에 검수 호출이 보여야 함');
   // 검수된 작품 노트: 관리자에서 추가 → 테스터가 작품명만 넣고 해석 → "검수된 작품 노트 기준" 표시
+  await go('notes');
   await a.click('#note-new');
   await a.fill('#note-title', '빈 집');
   await a.fill('#note-summary', '어머니와 딸이 오래 산 집을 정리하는 하루.');

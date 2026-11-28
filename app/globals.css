@@ -290,3 +290,39 @@ html.login:not(.gate-ready) #gate-wait{display:block}
 .gate-step .gate-go{margin-top:16px}
 .deep-opt{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}
 .deep-opt .linkbtn{font-size:14px}
+/* 관리자 주제별 화면 (11-28) */
+.adm-shell{display:block}
+.adm-nav{position:sticky;top:0;z-index:5;display:flex;gap:6px;overflow-x:auto;background:var(--bg);padding:10px 0;margin:0 0 4px;border-bottom:1px solid var(--line);scrollbar-width:none}
+.adm-nav::-webkit-scrollbar{display:none}
+.adm-nav button{flex:none;display:flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border:1px solid var(--line);border-radius:20px;background:#fff;color:var(--ink);font:inherit;font-size:14px;cursor:pointer}
+.adm-nav button[aria-current="page"]{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
+.adm-nav button:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+.nav-badge{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--soft);color:var(--navy);font-size:12px;font-weight:700;line-height:20px;text-align:center}
+.nav-badge.warn{background:#F6E3DD;color:#B4503B}
+.adm-nav button[aria-current="page"] .nav-badge{background:#fff}
+.sec-head{margin:14px 0 4px}
+.sec-head h2{margin:0;font-size:20px}
+.sec-head p{margin:2px 0 0;font-size:13px}
+.adm-sec>.card:first-of-type{margin-top:10px}
+.todo{display:flex;flex-direction:column;gap:6px}
+.todo-i{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;min-height:44px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--soft2);color:var(--ink);font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.todo-i span{color:var(--navy);font-size:18px}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0;font-size:14px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-weight:600}
+.def-box{background:var(--soft2);border-radius:10px;padding:10px 12px;margin:4px 0 12px}
+.def-box summary{cursor:pointer;font-weight:700;font-size:14px}
+.def-box .guide-pre{background:#fff}
+@media (min-width:900px){
+  .admin-wrap{max-width:1200px}
+  .adm-shell{display:grid;grid-template-columns:180px minmax(0,1fr);gap:24px;align-items:start}
+  .adm-nav{flex-direction:column;top:12px;border-bottom:0;padding:14px 0 0;overflow:visible}
+  .adm-nav button{justify-content:space-between;border-radius:10px;border-color:transparent;background:transparent}
+  .adm-nav button:hover{background:var(--soft)}
+  .adm-nav button[aria-current="page"]:hover{background:var(--navy)}
+  .adm-sec[data-k="home"]{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;align-content:start}
+  .adm-sec[data-k="home"]>.sec-head,.adm-sec[data-k="home"]>.admin-stats{grid-column:1/-1}
+  .adm-sec[data-k="home"]>.card:last-child{grid-column:1/-1}
+  .adm-sec[data-k="home"]>.card{margin:12px 0 0}
+}
+@media (min-width:900px){.adm-sec[data-k="home"]>.note{grid-column:1/-1;margin:8px 0 0}}

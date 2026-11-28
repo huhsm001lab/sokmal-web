@@ -372,3 +372,16 @@ export function buildJob(body: unknown, left: LeftFn, sw: PromptSwitches = DEFAU
 export const usingExamplePrompts = P.IS_EXAMPLE === true;
 
 export const isMetaReply = (t: string) => /^\s*\[(확인|모름)\]/.test(String(t));
+
+/** 관리자 화면에서 보여 줄 기본 '쓰는 기준' (예시·형식 줄은 뺌). 2번은 입시/매체가 다름 (11-28) */
+export function defaultMonoRules(): { exam: string; media2: string } {
+  const cut = (t: string) => {
+    const e = t.indexOf('\n아래는 사람(SOKMAL');
+    const f = t.indexOf('형식: 맨 첫 줄에');
+    return t.slice(0, e >= 0 ? e : f >= 0 ? f : t.length).trim();
+  };
+  const exam = cut(P.monoRules('입시 독백'));
+  const media = cut(P.monoRules('매체·오디션 독백'));
+  const media2 = (media.split('\n').find((l) => l.startsWith('2. ')) || '').trim();
+  return { exam, media2 };
+}

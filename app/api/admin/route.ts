@@ -8,6 +8,7 @@ import { cleanGuide } from '@/lib/guide';
 import { cleanNote, NOTE_MAX } from '@/lib/notes';
 import { approvalOn, authMode, ownerEmails } from '@/lib/auth';
 import { getStore, json, storeKind } from '@/lib/server';
+import { defaultMonoRules } from '@/lib/prompts/build';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -38,6 +39,8 @@ export async function GET(req: Request) {
     switches: await s.getSwitches(),
     waitlist: await s.waitlist(),
     guide: await s.getGuide(),
+    // 기본 '쓰는 기준' (관리자만 봄, 제작 기준 칸으로 불러와 고칠 수 있게)
+    defaults: { monoRules: defaultMonoRules() },
     reviews: await s.reviews(50),
     notes: await s.notes(),
     // 관리자 이메일은 늘 승인으로 보이게 (실제 판단과 같게)

@@ -280,9 +280,9 @@
       });
       return h('label', { class: 'sw-row', for: 'sw-' + key }, box, h('span', { class: 'sw-txt' }, h('b', {}, title), h('span', {}, desc)), state);
     };
-    const swCard = h('div', { class: 'card sw-card' }, h('h3', {}, '독백 지침 스위치'),
+    const swCard = h('div', { class: 'card sw-card' }, h('h3', {}, '독백 지침 켜고 끄기'),
       h('p', { class: 'adm-leg' }, '끄면 바로 다음 독백부터 모든 테스터에게 적용돼요. AI 호출 기록에 "(지침 끔)"처럼 표시돼서 나중에 비교할 수 있어요.'),
-      swRow('monoRules', '쓰는 기준', '기본 7줄. 아래 「제작 기준」을 넣으면 그 기준으로 바뀌어요'),
+      swRow('monoRules', '쓰는 기준', (d.guide && d.guide.make ? '지금: 관리자가 넣은 「제작 기준」 (' + d.guide.make.length.toLocaleString('ko-KR') + '자)' : '지금: 기본 7줄') + ' · 내용은 아래 「기준 → 독백」에서 보고 고쳐요'),
       swRow('monoExamples', '송무 예시 독백 5편', '말의 감각을 참고하라고 함께 보내는 예시'),
       h('p', { class: 'adm-leg' }, '둘 다 꺼도 배우의 재료(이야기·답)와 결과 형식은 그대로 보내요.'));
 
@@ -335,8 +335,21 @@
       if (r.status === 200 && r.j.guide) { d.guide = r.j.guide; toast('기준을 저장했어요. 다음 호출부터 적용돼요'); render(d); } else toast('저장하지 못했어요. 다시 눌러 주세요');
     });
     const fld = (label, k) => [h('label', { class: 'f', for: T[k].id }, label), T[k], cnt(T[k])];
+    const dm = (d.defaults && d.defaults.monoRules) || null;
+    const loadDef = h('button', { type: 'button', class: 'btn small', id: 'guide-load-default' }, '기본 7줄을 제작 기준 칸으로 불러오기');
+    loadDef.addEventListener('click', () => {
+      if (T.make.value.trim() && !confirm('제작 기준 칸에 이미 글이 있어요. 기본 7줄로 바꿀까요? (저장을 눌러야 적용돼요)')) return;
+      T.make.value = dm.exam + '\n\n(매체·오디션 독백일 때 2번) ' + dm.media2.replace(/^2\. /, '');
+      T.make.dispatchEvent(new Event('input')); T.make.focus();
+      toast('불러왔어요. 고친 뒤 「기준 저장」을 눌러 주세요');
+    });
+    const defBox = !dm ? null : h('details', { class: 'def-box' },
+      h('summary', {}, '기본 쓰는 기준 7줄 보기 ' , h('span', { class: 'adm-leg' }, g.make ? '(지금은 아래 제작 기준을 써요)' : '(지금 이걸 써요)')),
+      h('p', { class: 'adm-leg' }, '제작 기준 칸이 비어 있으면 이 7줄을 써요. 기본 7줄은 여기서 바로 고칠 수 없고, 불러와서 고친 뒤 저장하면 그 글이 대신 쓰여요. 제작 기준 칸을 비우고 저장하면 다시 기본 7줄로 돌아가요.'),
+      h('pre', { class: 'guide-pre' }, dm.exam + '\n\n[매체·오디션 독백일 때 2번]\n' + dm.media2),
+      h('div', { class: 'out-acts' }, loadDef));
     const PANES = [
-      ['mono', '독백', [...fld('창작 독백 제작 기준', 'make'), ...fld('평가 및 검수 기준', 'review'),
+      ['mono', '독백', [defBox, ...fld('창작 독백 제작 기준', 'make'), ...fld('평가 및 검수 기준', 'review'),
         h('label', { class: 'sw-row', for: 'guide-review-on' }, revOn, h('span', { class: 'sw-txt' }, h('b', {}, '검수 단계 켜기'), h('span', {}, '1차로 쓴 독백을 검수 기준으로 평가·수정해 최종본만 배우에게 보내요. AI를 두 번 불러 시간·비용이 약 두 배예요.')))]],
       ['exam', '해석 입시', fld('입시 해석 기준 (기본 지침 끝에 덧붙음)', 'exam')],
       ['pro', '해석 전문', [...fld('전문 해석 기준 (기본 지침 끝에 덧붙음)', 'pro'), ...fld('깊은 분석 기준 (배우가 켰을 때만, 위 기준 대신 씀)', 'proDeep')]],
@@ -351,8 +364,8 @@
       return b;
     }));
     PANES.forEach(([k, , kids]) => { panes[k] = h('div', { class: 'guide-pane', 'data-k': k, hidden: window.__gTab !== k }, kids); });
-    const gCard = h('div', { class: 'card' }, h('h3', {}, '기준 (독백 · 해석 · 내 이미지 · 연기 대화)'),
-      h('p', { class: 'adm-leg' }, '한글 그대로 붙여 넣고 저장하면 바로 다음 호출부터 적용돼요. 다시 배포할 필요 없어요. • 표시는 기준이 들어 있는 탭이에요. 위 스위치에서 「쓰는 기준」을 끄면 독백 제작 기준도 함께 꺼져요.' + (g.updatedAt ? ' 마지막 저장: ' + timeOf(g.updatedAt) : '')),
+    const gCard = h('div', { class: 'card' }, h('h3', {}, '기준 글 (독백 · 해석 · 내 이미지 · 연기 대화)'),
+      h('p', { class: 'adm-leg' }, '한글 그대로 붙여 넣고 저장하면 바로 다음 호출부터 적용돼요. 다시 배포할 필요 없어요. • 표시는 기준이 들어 있는 탭이에요. 위에서 「쓰는 기준」을 끄면 독백 제작 기준도 함께 꺼져요.' + (g.updatedAt ? ' 마지막 저장: ' + timeOf(g.updatedAt) : '')),
       tabs, ...Object.values(panes),
       h('div', { class: 'out-acts' }, saveG));
 
@@ -415,12 +428,59 @@
         h('div', { class: 'adm-leg' }, '1차 독백'), h('pre', { class: 'guide-pre' }, x.draft),
         h('div', { class: 'adm-leg' }, '최종 (배우가 받은 것)'), h('pre', { class: 'guide-pre' }, x.final))));
 
-    body.replaceChildren(
+    /* ---------- 주제별 화면 (11-28 개편) ---------- */
+    const recent = (d.calls || []).slice(0, 5);
+    const errN = (d.calls || []).filter((c) => c.status === 'error').length;
+    const todo = [];
+    if (waitN) todo.push(['people', '가입 대기 ' + waitN + '명 — 승인해 주세요']);
+    if (m.notReady) todo.push(['logs', 'AI가 꺼져 있어요 — 호출 기록에서 이유 보기']);
+    if (errN) todo.push(['logs', '최근 AI 오류 ' + errN + '건']);
+    const newRv = rvs.filter((t) => t.feedback.review.consent && !appr[t.uid]).length;
+    if (newRv) todo.push(['voice', '실어도 되는 후기 ' + newRv + '건 — 랜딩 후보로 고르기']);
+    const go = (k) => { SEC = k; try { history.replaceState(null, '', '#' + k); } catch (e) {} paint(); window.scrollTo(0, 0); };
+    const homeCards = [
       ...notes.map((n) => h('div', { class: 'note warn' }, n)),
-      mCard, swCard, gCard, rvsCard, nCardNotes, stats, tCard, cCard, ind, sv, rvCard, nCard, wCard,
-      h('div', { class: 'out-acts', style: 'margin:16px 0 40px' }, csvFb, csvCalls, csvWait),
-      h('p', { class: 'adm-leg' }, '저장소: ' + ({ redis: 'Upstash Redis', supabase: 'Supabase', file: '내 컴퓨터 파일', memory: '서버 메모리(꺼지면 사라짐)' }[m.storage] || m.storage) + ' · AI: ' + (m.provider === 'openai' ? 'OpenAI' : 'Anthropic')));
+      stats,
+      h('div', { class: 'card' }, h('h3', {}, '할 일'),
+        todo.length ? h('div', { class: 'todo' }, todo.map(([k, t]) => h('button', { type: 'button', class: 'todo-i', onclick: () => go(k) }, t, h('span', { 'aria-hidden': 'true' }, '›'))))
+          : h('div', { class: 'adm-leg' }, '지금 처리할 일이 없어요.')),
+      h('div', { class: 'card' }, h('h3', {}, '지금 설정'),
+        h('dl', { class: 'kv' },
+          h('dt', {}, '로그인'), h('dd', {}, !lg.mode ? '초대 코드' : lg.mode === 'fake' ? '시험용 가짜 로그인' : '이메일 코드 로그인' + (lg.approval ? ' · 승인제' : '')),
+          h('dt', {}, '독백 쓰는 기준'), h('dd', {}, !sw.monoRules ? '꺼짐 (일반 AI처럼)' : g.make ? '관리자 제작 기준' : '기본 7줄'),
+          h('dt', {}, '송무 예시 5편'), h('dd', {}, sw.monoExamples ? '켜짐' : '꺼짐'),
+          h('dt', {}, '독백 검수'), h('dd', {}, g.reviewOn && g.review ? '켜짐 (AI 두 번)' : '꺼짐'),
+          h('dt', {}, '작품 노트'), h('dd', {}, wNotes.filter((n) => n.status === '검수됨').length + '편 검수됨 / ' + wNotes.length + '편'),
+          h('dt', {}, '저장소'), h('dd', {}, { redis: 'Upstash Redis', supabase: 'Supabase', file: '내 컴퓨터 파일', memory: '서버 메모리(꺼지면 사라짐)' }[m.storage] || m.storage),
+          h('dt', {}, 'AI'), h('dd', {}, (m.provider === 'openai' ? 'OpenAI' : 'Anthropic') + (m.mock ? ' · 시험 모드' : m.notReady ? ' · 꺼짐' : ' · 켜짐')))),
+      h('div', { class: 'card' }, h('h3', {}, '최근 AI 호출'),
+        recent.length ? h('div', { class: 'adm-scroll' }, h('table', { class: 'adm-table' },
+          h('thead', {}, h('tr', {}, ['시간', '누가', '기능', '결과'].map((x) => h('th', {}, x)))),
+          h('tbody', {}, recent.map((c) => h('tr', {}, h('td', {}, timeOf(c.at)), h('td', {}, who(c.uid)), h('td', {}, c.feature), h('td', {}, STATUS[c.status] || c.status)))))) : h('div', { class: 'adm-leg' }, '아직 없어요.'),
+        h('div', { class: 'out-acts' }, h('button', { type: 'button', class: 'btn small', onclick: () => go('logs') }, '전체 기록 보기'))),
+    ];
+    const SECS = [
+      ['home', '한눈에', '', '오늘 볼 것과 지금 설정', homeCards],
+      ['people', '사람', waitN ? String(waitN) : '', '가입·승인, 테스터 사용량, 대기 명단', [mCard, tCard, wCard, h('div', { class: 'out-acts' }, csvWait)]],
+      ['rules', 'AI 기준', '', '독백·해석·내 이미지·연기 대화에 AI가 따르는 기준', [swCard, gCard]],
+      ['notes', '작품 노트', wNotes.length ? String(wNotes.length) : '', '해석이 사실의 기준으로 쓰는 검수된 작품 정보', [nCardNotes]],
+      ['logs', '기록', errN ? '!' : '', 'AI 호출·비용, 독백 검수 기록', [cCard, rvsCard, h('div', { class: 'out-acts' }, csvCalls)]],
+      ['voice', '의견·후기', newRv ? String(newRv) : '', '테스터가 남긴 지표·후기·한 줄 의견', [ind, sv, rvCard, nCard, h('div', { class: 'out-acts' }, csvFb)]],
+    ];
+    if (!SECS.some((x) => x[0] === SEC)) SEC = 'home';
+    const nav = h('nav', { class: 'adm-nav', id: 'adm-nav', 'aria-label': '관리 메뉴' }, SECS.map(([k, t, badge]) =>
+      h('button', { type: 'button', 'data-k': k, 'aria-current': SEC === k ? 'page' : false, onclick: () => go(k) }, t, badge ? h('span', { class: 'nav-badge' + (badge === '!' ? ' warn' : '') }, badge) : null)));
+    const secEls = SECS.map(([k, t, , lead, kids]) => h('section', { class: 'adm-sec', 'data-k': k, 'aria-label': t },
+      h('div', { class: 'sec-head' }, h('h2', {}, t), h('p', { class: 'adm-leg' }, lead)), ...kids));
+    function paint() {
+      nav.querySelectorAll('button').forEach((b) => { if (b.dataset.k === SEC) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+      secEls.forEach((el) => { el.hidden = el.dataset.k !== SEC; });
+    }
+    paint();
+    body.replaceChildren(
+      h('div', { class: 'adm-shell' }, nav, h('div', { class: 'adm-main' }, secEls)));
   }
+  let SEC = (location.hash || '').slice(1) || 'home';
 
   if (getCode()) load(); else showLogin('');
 })();

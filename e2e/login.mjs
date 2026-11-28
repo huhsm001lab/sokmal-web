@@ -66,6 +66,8 @@ try {
   await a.goto(BASE + '/admin');
   await a.fill('#adm-code', ADMIN);
   await a.click('#adm-go');
+  await a.locator('#adm-nav [data-k="people"] .nav-badge', { hasText: '1' }).waitFor({ timeout: 8000 });
+  await a.click('#adm-nav [data-k="people"]');
   await a.locator('h3', { hasText: '가입·승인 — 대기 1명' }).waitFor({ timeout: 8000 });
   const row = a.locator('tr', { hasText: 'tester@test.kr' });
   assert.match(await row.textContent(), /김배우[\s\S]*입시생[\s\S]*한예종 입시반[\s\S]*대기/);

@@ -22,7 +22,7 @@ export type MonoGuide = {
 };
 export type GuideKey = 'exam' | 'pro' | 'image' | 'talk';
 
-export const GUIDE_MAX = 30_000;
+export const GUIDE_MAX = 60_000; // 11-28 독백 지침 V2.1이 약 4만 8천 자
 export const EMPTY_GUIDE: MonoGuide = { make: '', review: '', reviewOn: false, exam: '', pro: '', proDeep: '', image: '', talk: '', updatedAt: null };
 
 export function cleanGuide(v: unknown): MonoGuide {
@@ -52,7 +52,7 @@ export function applyMakeGuide(text: string, make: string, _mtype?: string): str
   if (f < 0) return text;
   const r0 = text.indexOf(RULES_START);
   const start = r0 >= 0 && r0 < f ? r0 : f;
-  return text.slice(0, start) + `[쓰는 기준 — 창작 독백 제작 기준]\n${make.trim()}\n\n` + text.slice(f);
+  return text.slice(0, start) + `[쓰는 기준 — 창작 독백 제작 기준]\n${make.trim()}\n\n[이 앱의 출력 형식] 위 기준의 출력 형식·필드와 아래 형식이 다르면, 아래 형식을 따릅니다.\n` + text.slice(f);
 }
 
 export const FINAL_MARK = '===최종 독백===';

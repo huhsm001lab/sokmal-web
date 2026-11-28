@@ -15,10 +15,10 @@ describe('제작 기준 넣기 (11-28: 기본 지침·약속 줄 없음)', () =>
     expect(t).not.toContain('규칙 하나');
     expect(t).not.toContain('사람이 쓴 예시');
     expect(t).not.toContain('SOKMAL에서 꼭 지킬 것');
-    expect(t).toBe(HEAD + '[쓰는 기준 — 창작 독백 제작 기준]\n01. 대사의 자연스러움\n\n' + FORMAT);
+    expect(t).toBe(HEAD + '[쓰는 기준 — 창작 독백 제작 기준]\n01. 대사의 자연스러움\n\n[이 앱의 출력 형식] 위 기준의 출력 형식·필드와 아래 형식이 다르면, 아래 형식을 따릅니다.\n' + FORMAT);
   });
   it('기본 기준이 없는 글이면 형식 줄 바로 앞에', () => {
-    expect(applyMakeGuide(HEAD + FORMAT, '기준', '매체·오디션 독백')).toBe(HEAD + '[쓰는 기준 — 창작 독백 제작 기준]\n기준\n\n' + FORMAT);
+    expect(applyMakeGuide(HEAD + FORMAT, '기준', '매체·오디션 독백')).toBe(HEAD + '[쓰는 기준 — 창작 독백 제작 기준]\n기준\n\n[이 앱의 출력 형식] 위 기준의 출력 형식·필드와 아래 형식이 다르면, 아래 형식을 따릅니다.\n' + FORMAT);
   });
   it('기준이 비었거나 형식 줄이 없으면 그대로', () => {
     expect(applyMakeGuide(full, '  ', '입시 독백')).toBe(full);
@@ -50,9 +50,9 @@ describe('저장', () => {
   it('기준 저장·읽기, 너무 긴 글은 자름, 검수 기록', async () => {
     const s = new MemoryStore();
     expect(await s.getGuide()).toEqual(EMPTY_GUIDE);
-    await s.setGuide(cleanGuide({ make: 'a'.repeat(40_000), review: '검수', reviewOn: true }));
+    await s.setGuide(cleanGuide({ make: 'a'.repeat(70_000), review: '검수', reviewOn: true }));
     const g = await s.getGuide();
-    expect(g.make.length).toBe(30_000);
+    expect(g.make.length).toBe(60_000);
     expect(g.reviewOn).toBe(true);
     await s.logReview({ uid: 'u1', feature: '독백·new', before: 70, after: 85, used: true, review: 'r', draft: 'd', final: 'f' });
     const rv = await s.reviews();

@@ -295,8 +295,8 @@
 
     /* 기준 (11-27 독백, 11-28 해석·내 이미지·연기 대화): 한글 그대로 넣고 저장 → 다음 호출부터 적용 */
     const g = Object.assign({ make: '', review: '', reviewOn: false, exam: '', pro: '', proDeep: '', image: '', talk: '', updatedAt: null }, d.guide || {});
-    const ta = (id, v, ph) => { const t = h('textarea', { class: 'guide-ta', id, placeholder: ph, maxlength: '30000' }); t.value = v || ''; return t; };
-    const cnt = (t) => { const c = h('span', { class: 'adm-leg' }); const f = () => { c.textContent = t.value.length.toLocaleString('ko-KR') + ' / 30,000자'; }; t.addEventListener('input', f); f(); return c; };
+    const ta = (id, v, ph) => { const t = h('textarea', { class: 'guide-ta', id, placeholder: ph, maxlength: '60000' }); t.value = v || ''; return t; };
+    const cnt = (t) => { const c = h('span', { class: 'adm-leg' }); const f = () => { c.textContent = t.value.length.toLocaleString('ko-KR') + ' / 60,000자'; }; t.addEventListener('input', f); f(); return c; };
     const T = {
       make: ta('guide-make', g.make, '독백 지침을 쓰고 싶을 때만 넣어요. 비워 두면 지침 없이 재료와 결과 형식만 보내요.'),
       review: ta('guide-review', g.review, '여기에 「평가 및 검수 기준」을 붙여 넣어요. 비워 두면 검수하지 않아요.'),

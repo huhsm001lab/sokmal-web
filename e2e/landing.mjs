@@ -52,6 +52,8 @@ try {
   await a.goto(APP + '/admin');
   await a.fill('#adm-code', ADMIN);
   await a.click('#adm-go');
+  await a.locator('#adm-nav').waitFor({ timeout: 8000 });
+  await a.click('#adm-nav [data-k="people"]');
   await a.locator('h3', { hasText: '대기 명단 1명' }).waitFor({ timeout: 8000 });
   assert.match(await a.locator('#adm-body').textContent(), /010-2345-6789[\s\S]*입시생[\s\S]*지정희곡/);
   await a.locator('tr', { hasText: '010-2345-6789' }).locator('button', { hasText: '지우기' }).click();

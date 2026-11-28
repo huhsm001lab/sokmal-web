@@ -306,8 +306,8 @@
         h('thead', {}, h('tr', {}, ['가입', '이름', '이메일', '하는 일', '소속', '상태', ''].map((x) => h('th', {}, x)))),
         h('tbody', {}, members.slice().sort((a, b) => (a.access === 'pending' ? -1 : 0) - (b.access === 'pending' ? -1 : 0)).map((m) => h('tr', {},
           h('td', {}, dayShort((m.profile.createdAt || '').slice(0, 10))), h('td', {}, m.profile.name), h('td', {}, m.profile.email), h('td', {}, m.profile.role), h('td', {}, m.profile.affiliation || '-'),
-          h('td', {}, h('span', { class: 'tag' + (m.access === 'approved' ? ' ok' : '') }, ACC[m.access] || m.access)),
-          h('td', {}, h('div', { class: 'adm-name' },
+          h('td', {}, h('span', { class: 'tag' + (m.access === 'approved' ? ' ok' : '') }, (ACC[m.access] || m.access) + (m.owner ? ' (관리자)' : ''))),
+          h('td', {}, m.owner ? '' : h('div', { class: 'adm-name' },
             m.access !== 'approved' ? accBtn(m, 'approved', '승인', true) : accBtn(m, 'pending', '승인 취소'),
             m.access !== 'blocked' ? accBtn(m, 'blocked', '막기') : null))))))) : h('div', { class: 'adm-leg' }, '아직 가입한 사람이 없어요.'));
 

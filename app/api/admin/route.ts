@@ -40,7 +40,8 @@ export async function GET(req: Request) {
     guide: await s.getGuide(),
     reviews: await s.reviews(50),
     notes: await s.notes(),
-    members: await s.members(),
+    // 관리자 이메일은 늘 승인으로 보이게 (실제 판단과 같게)
+    members: (await s.members()).map((m) => (ownerEmails().includes(m.profile.email.toLowerCase()) ? { ...m, access: 'approved' as const, owner: true } : m)),
     login: { mode: authMode(), approval: approvalOn(), owners: ownerEmails().length },
     meta: {
       storage: storeKind(),

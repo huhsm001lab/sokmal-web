@@ -88,3 +88,10 @@ npm run build && npm run e2e
 - 대기 명단은 앱 서버 `/api/waitlist`(다른 주소에서 받음)에 저장되고 관리자 화면 「대기 명단」에서 보고 지워요. 받는 주소를 좁히려면 앱 프로젝트에 `SOKMAL_LANDING_ORIGINS=https://소개-페이지-주소`.
 - 앱 주소가 바뀌면 `landing/index.html` 의 `<meta name="sokmal-app">` 를 고쳐요.
 - 확인: `node e2e/landing.mjs`
+
+## 로그인 (11-28)
+- 배우의 저장소(dialect-coach)와 **같은 Supabase 프로젝트**로 이메일 숫자 코드 로그인 → 처음이면 프로필(이름·하는 일·소속·만 14세 이상·개인정보 동의) → **관리자 승인** → 사용. 한 계정으로 두 서비스.
+- Vercel에 넣을 값: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`(배우의 저장소의 `SUPABASE_URL`·`SUPABASE_ANON_KEY`와 같은 값, 공개 값), `SOKMAL_OWNER_EMAILS`(관리자 이메일). 넣으면 초대 코드 대신 로그인이 돼요. 승인 없이 열려면 `SOKMAL_APPROVAL=off`.
+- Supabase에 `supabase/002_sokmal_shared.sql`을 한 번 실행: `profiles` 표 + 기록 표(`records`)에 `sokmal` 추가. 로그인하면 내 기록이 계정에 저장되고, 이 기기에 있던 기록은 "계정으로 옮기기"로 옮겨요.
+- 승인·프로필 사본은 속말 저장소(Upstash)에, 관리자 화면 「가입·승인」에서 승인·막기.
+- 확인: `node e2e/login.mjs` (시험용 가짜 로그인)

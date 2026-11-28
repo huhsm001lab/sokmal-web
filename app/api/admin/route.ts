@@ -6,6 +6,7 @@ import { kstMonthStartIso } from '@/lib/limits';
 import { cleanSwitches } from '@/lib/prompts/switches';
 import { cleanGuide } from '@/lib/guide';
 import { cleanNote, NOTE_MAX } from '@/lib/notes';
+import { approvalOn, authMode, ownerEmails } from '@/lib/auth';
 import { getStore, json, storeKind } from '@/lib/server';
 
 export const runtime = 'nodejs';
@@ -39,6 +40,8 @@ export async function GET(req: Request) {
     guide: await s.getGuide(),
     reviews: await s.reviews(50),
     notes: await s.notes(),
+    members: await s.members(),
+    login: { mode: authMode(), approval: approvalOn(), owners: ownerEmails().length },
     meta: {
       storage: storeKind(),
       persistent: ['redis', 'supabase', 'file'].includes(storeKind()),
@@ -55,7 +58,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const s = gate(req);
   if (s instanceof Response) return s;
-  let b: { name?: { uid?: unknown; name?: unknown }; approve?: { uid?: unknown; v?: unknown }; switches?: unknown; guide?: unknown; note?: unknown; noteDelete?: unknown; waitDelete?: { contact?: unknown; kind?: unknown } };
+  let b: { name?: { uid?: unknown; name?: unknown }; approve?: { uid?: unknown; v?: unknown }; switches?: unknown; guide?: unknown; access?: { uid?: unknown; v?: unknown }; note?: unknown; noteDelete?: unknown; waitDelete?: { contact?: unknown; kind?: unknown } };
   try {
     b = await req.json();
   } catch {
@@ -68,6 +71,10 @@ export async function POST(req: Request) {
   }
   if (b.waitDelete && typeof b.waitDelete.contact === 'string' && (b.waitDelete.kind === 'email' || b.waitDelete.kind === 'phone')) {
     await s.removeWaitlist({ contact: b.waitDelete.contact, kind: b.waitDelete.kind });
+    return json({ ok: true });
+  }
+  if (b.access && typeof b.access.uid === 'string' && /^[A-Za-z0-9-]{4,80}$/.test(b.access.uid) && (b.access.v === 'approved' || b.access.v === 'pending' || b.access.v === 'blocked')) {
+    await s.setAccess(b.access.uid, b.access.v);
     return json({ ok: true });
   }
   if (b.note && typeof b.note === 'object') {

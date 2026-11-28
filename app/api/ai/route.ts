@@ -7,8 +7,7 @@ import { kstDay, kstMonthStartIso, LIMITS, type CounterKey } from '@/lib/limits'
 import { BadInput, buildJob, isMetaReply, type Job } from '@/lib/prompts/build';
 import { DEFAULT_SWITCHES } from '@/lib/prompts/switches';
 import { EMPTY_GUIDE, parseReview, reviewWrap } from '@/lib/guide';
-import { inviteOk } from '@/lib/invite';
-import { getStore, inviteCodeOf, json, userIdOf } from '@/lib/server';
+import { gateOf, getStore, inviteCodeOf, json, userIdOf } from '@/lib/server';
 import type { CallLog } from '@/lib/data/types';
 
 export const runtime = 'nodejs';
@@ -24,7 +23,8 @@ export async function POST(req: Request) {
     console.error('[sokmal] AI 설정이 안 됨:', notReady ?? '저장소 없음');
     return json({ error: 'not_configured' }, 503);
   }
-  if (!inviteOk(req)) return json({ error: 'invite_required' }, 403);
+  const gate = await gateOf(req);
+  if (gate) return json({ error: gate }, 403);
   const uid = await userIdOf(req);
   if (!uid) return json({ error: 'session_expired' }, 401);
 

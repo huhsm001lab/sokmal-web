@@ -67,6 +67,17 @@ export class SupabaseStore implements DataStore {
   }
   async putNote() {}
   async removeNote() {}
+  async getProfile() {
+    return null;
+  }
+  async putProfile() {}
+  async getAccess() {
+    return null;
+  }
+  async setAccess() {}
+  async members() {
+    return [];
+  }
   async reviews() {
     return [];
   }

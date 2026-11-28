@@ -2,8 +2,7 @@
 import { aiNotReady, config } from '@/lib/config';
 import { COUNTER_KEYS, kstDay, LIMITS, type CounterKey } from '@/lib/limits';
 import { usingExamplePrompts } from '@/lib/prompts/build';
-import { inviteOk } from '@/lib/invite';
-import { getStore, inviteCodeOf, json, userIdOf } from '@/lib/server';
+import { gateOf, getStore, inviteCodeOf, json, userIdOf } from '@/lib/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,7 +11,8 @@ const KEYS: CounterKey[] = COUNTER_KEYS;
 
 export async function GET(req: Request) {
   const store = getStore();
-  if (!inviteOk(req)) return json({ ready: false, error: 'invite_required' }, 403);
+  const gate = await gateOf(req);
+  if (gate) return json({ ready: false, error: gate }, 403);
   if (!store) return json({ ready: false, error: 'not_configured' }, 503);
   const uid = await userIdOf(req);
   if (!uid) return json({ ready: false, error: 'session_expired' }, 401);
@@ -23,7 +23,8 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const store = getStore();
-  if (!inviteOk(req)) return json({ error: 'invite_required' }, 403);
+  const gate = await gateOf(req);
+  if (gate) return json({ error: gate }, 403);
   if (!store) return json({ error: 'not_configured' }, 503);
   const uid = await userIdOf(req);
   if (!uid) return json({ error: 'session_expired' }, 401);

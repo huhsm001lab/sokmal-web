@@ -14,6 +14,8 @@
 //   admin:guide       값    독백 제작·검수 기준 JSON (관리자가 넣음)
 //   reviews           목록  독백 검수 기록(JSON, 최신이 앞) 300건
 //   notes             해시  id → 검수된 작품 노트 JSON
+//   members           집합  로그인 가입자 uid / profile:<uid> 값 프로필 JSON / access 해시 uid → approved|pending|blocked
+import type { Access, Profile } from '../auth';
 import type { WorkNote } from '../notes';
 import { cleanGuide, type MonoGuide } from '../guide';
 import { hideKeys } from '../config';
@@ -151,6 +153,27 @@ export class KvStore implements DataStore {
   }
   async reviews(limit = 50) {
     return (await this.kv.lrange('reviews', 0, limit - 1)).map((v) => parse<ReviewLog & { at: string }>(v)).filter((v): v is ReviewLog & { at: string } => !!v);
+  }
+  async getProfile(uid: string) {
+    return parse<Profile>(await this.kv.get(`profile:${uid}`));
+  }
+  async putProfile(uid: string, p: Profile) {
+    await this.kv.sadd('members', uid);
+    await this.kv.set(`profile:${uid}`, JSON.stringify(p));
+  }
+  async getAccess(uid: string): Promise<Access | null> {
+    const h = (await this.kv.hgetall('access')) || {};
+    const v = h[uid];
+    return v === 'approved' || v === 'pending' || v === 'blocked' ? v : null;
+  }
+  async setAccess(uid: string, a: Access) {
+    await this.kv.hset('access', { [uid]: a });
+  }
+  async members() {
+    const [uids, acc] = await Promise.all([this.kv.smembers('members'), this.kv.hgetall('access')]);
+    const a = acc || {};
+    const rows = await Promise.all(uids.map(async (uid) => ({ uid, profile: await this.getProfile(uid), access: (a[uid] as Access) || 'pending' })));
+    return rows.filter((r): r is { uid: string; profile: Profile; access: Access } => !!r.profile).sort((x, y) => y.profile.createdAt.localeCompare(x.profile.createdAt));
   }
   async notes(): Promise<WorkNote[]> {
     const all = (await this.kv.hgetall('notes')) || {};

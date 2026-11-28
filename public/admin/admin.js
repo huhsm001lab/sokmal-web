@@ -92,9 +92,11 @@
   refreshBtn.addEventListener('click', load);
   logoutBtn.addEventListener('click', () => { setCode(''); showLogin('나갔어요.'); });
 
-  function label(t) { return t.name || (t.code ? '코드 ' + t.code : '테스터 ' + t.uid.slice(-4)); }
+  let MEM = {};
+  function label(t) { const m = MEM[t.uid]; return t.name || (m ? m.profile.name : '') || (t.code ? '코드 ' + t.code : '테스터 ' + t.uid.slice(-4)); }
 
   function render(d) {
+    MEM = Object.fromEntries((d.members || []).map((m) => [m.uid, m]));
     const testers = (d.testers || []).slice().sort((a, b) => (b.last || '').localeCompare(a.last || ''));
     const byUid = Object.fromEntries(testers.map((t) => [t.uid, t]));
     const who = (uid) => (byUid[uid] ? label(byUid[uid]) : '테스터 ' + String(uid).slice(-4));
@@ -284,6 +286,31 @@
       swRow('monoExamples', '송무 예시 독백 5편', '말의 감각을 참고하라고 함께 보내는 예시'),
       h('p', { class: 'adm-leg' }, '둘 다 꺼도 배우의 재료(이야기·답)와 결과 형식은 그대로 보내요.'));
 
+    /* 가입·승인 (11-28): 로그인한 사람의 프로필과 승인 */
+    const members = d.members || [];
+    const lg = d.login || {};
+    const ACC = { approved: '승인됨', pending: '대기', blocked: '막음' };
+    const accBtn = (m, v, label, pri) => {
+      const b = h('button', { type: 'button', class: 'btn small' + (pri ? ' primary' : '') }, label);
+      b.addEventListener('click', async () => {
+        b.disabled = true;
+        const r = await api('POST', { access: { uid: m.uid, v } }).catch(() => ({ status: 0 }));
+        if (r.status === 200) { m.access = v; toast(m.profile.name + ': ' + ACC[v]); render(d); } else { b.disabled = false; toast('바꾸지 못했어요'); }
+      });
+      return b;
+    };
+    const waitN = members.filter((m) => m.access === 'pending').length;
+    const mCard = !lg.mode ? null : h('div', { class: 'card' }, h('h3', {}, '가입·승인' + (waitN ? ' — 대기 ' + waitN + '명' : '')),
+      h('p', { class: 'adm-leg' }, (lg.approval ? '승인한 사람만 AI 기능을 쓸 수 있어요.' : '승인제가 꺼져 있어요(SOKMAL_APPROVAL=off). 가입하면 바로 써요.') + (lg.owners ? '' : ' 관리자 이메일(SOKMAL_OWNER_EMAILS)이 비어 있어요.') + (lg.mode === 'fake' ? ' 지금은 시험용 가짜 로그인이에요.' : '')),
+      members.length ? h('div', { class: 'adm-scroll' }, h('table', { class: 'adm-table' },
+        h('thead', {}, h('tr', {}, ['가입', '이름', '이메일', '하는 일', '소속', '상태', ''].map((x) => h('th', {}, x)))),
+        h('tbody', {}, members.slice().sort((a, b) => (a.access === 'pending' ? -1 : 0) - (b.access === 'pending' ? -1 : 0)).map((m) => h('tr', {},
+          h('td', {}, dayShort((m.profile.createdAt || '').slice(0, 10))), h('td', {}, m.profile.name), h('td', {}, m.profile.email), h('td', {}, m.profile.role), h('td', {}, m.profile.affiliation || '-'),
+          h('td', {}, h('span', { class: 'tag' + (m.access === 'approved' ? ' ok' : '') }, ACC[m.access] || m.access)),
+          h('td', {}, h('div', { class: 'adm-name' },
+            m.access !== 'approved' ? accBtn(m, 'approved', '승인', true) : accBtn(m, 'pending', '승인 취소'),
+            m.access !== 'blocked' ? accBtn(m, 'blocked', '막기') : null))))))) : h('div', { class: 'adm-leg' }, '아직 가입한 사람이 없어요.'));
+
     /* 기준 (11-27 독백, 11-28 해석·내 이미지·연기 대화): 한글 그대로 넣고 저장 → 다음 호출부터 적용 */
     const g = Object.assign({ make: '', review: '', reviewOn: false, exam: '', pro: '', image: '', talk: '', updatedAt: null }, d.guide || {});
     const ta = (id, v, ph) => { const t = h('textarea', { class: 'guide-ta', id, placeholder: ph, maxlength: '30000' }); t.value = v || ''; return t; };
@@ -389,7 +416,7 @@
 
     body.replaceChildren(
       ...notes.map((n) => h('div', { class: 'note warn' }, n)),
-      swCard, gCard, rvsCard, nCardNotes, stats, tCard, cCard, ind, sv, rvCard, nCard, wCard,
+      mCard, swCard, gCard, rvsCard, nCardNotes, stats, tCard, cCard, ind, sv, rvCard, nCard, wCard,
       h('div', { class: 'out-acts', style: 'margin:16px 0 40px' }, csvFb, csvCalls, csvWait),
       h('p', { class: 'adm-leg' }, '저장소: ' + ({ redis: 'Upstash Redis', supabase: 'Supabase', file: '내 컴퓨터 파일', memory: '서버 메모리(꺼지면 사라짐)' }[m.storage] || m.storage) + ' · AI: ' + (m.provider === 'openai' ? 'OpenAI' : 'Anthropic')));
   }

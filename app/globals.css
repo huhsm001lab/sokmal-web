@@ -270,3 +270,21 @@ details.adm-row summary{cursor:pointer;font-size:14px}
 .talk-turn .turn-q{font-weight:700;color:var(--navy);margin:0 0 8px}
 .t-pick-list{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;max-height:220px;overflow:auto}
 .t-pick-item{text-align:left;height:auto;white-space:normal}
+/* 로그인 입장 화면 (11-28) */
+html.login #gate-form,html.login .gate-foot-invite{display:none}
+html.login:not(.gate-ready) #gate-wait{display:block}
+.gate-step{width:100%;margin-top:18px;text-align:center}
+.gate-form .gate-lead{margin:0 0 6px;text-align:center}
+.gate-form input[type=email],.gate-profile input[type=text]{font-size:17px;font-weight:400;letter-spacing:0;text-align:left}
+#gate-otp-in{letter-spacing:.25em}
+.gate-hint{font-weight:400;color:var(--muted)}
+.gate-note{margin:6px 0 0;font-size:13px;color:var(--muted);text-align:center}
+.linkbtn{border:0;background:none;padding:2px;font:inherit;color:var(--navy);text-decoration:underline;cursor:pointer}
+.gate-chips{display:flex;flex-wrap:wrap;gap:8px}
+.gate-chips .chip[aria-checked="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+.gate-check{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink)}
+.gate-check input{width:20px!important;height:20px;margin:0;accent-color:var(--navy);padding:0!important}
+.gate-terms{font-size:13px;color:var(--muted)}
+.gate-terms summary{cursor:pointer;color:var(--navy)}
+.gate-terms p{margin:6px 0 0;line-height:1.7}
+.gate-step .gate-go{margin-top:16px}

@@ -6,6 +6,7 @@ import path from 'node:path';
 import Script from 'next/script';
 import AuthBridge from './AuthBridge';
 import { inviteOn } from '@/lib/invite';
+import { authCfg, authMode } from '@/lib/auth';
 
 // 초대 코드를 쓰는지는 서버 환경변수로 정해지므로 요청마다 그린다
 export const dynamic = 'force-dynamic';
@@ -17,9 +18,12 @@ const markup = read('legacy', 'body.html');
 const ver = fs.statSync(path.join(process.cwd(), 'public', 'legacy', 'app.js')).mtimeMs.toString(36);
 
 export default function Page() {
-  const gated = inviteOn();
-  // 초대 코드가 필요하고 이 브라우저에 저장된 코드가 없으면, 앱을 그리기 전에 입장 화면만 보이게 잠근다
-  const lock = `(function(){window.SOKMAL_GATED=${gated ? 'true' : 'false'};if(!window.SOKMAL_GATED)return;var c='';try{c=localStorage.getItem('sokmal.invite')||''}catch(e){}if(!c)document.documentElement.classList.add('gated')})();`;
+  const auth = authMode();
+  const gated = !auth && inviteOn();
+  // 로그인 설정(공개 값만): 화면 스크립트가 읽어 로그인 창을 띄운다 (11-28)
+  const cfg = JSON.stringify(auth === 'supabase' ? { auth, url: authCfg().url, anon: authCfg().anon } : { auth });
+  // 로그인 방식이면 확인이 끝날 때까지 입장 화면만 보이게 잠근다. 초대 코드 방식은 저장된 코드가 없을 때만
+  const lock = `(function(){window.SOKMAL_CFG=${cfg.replace(/</g, '\\u003c')};window.SOKMAL_GATED=${gated ? 'true' : 'false'};if(window.SOKMAL_CFG.auth){document.documentElement.classList.add('gated','login');return;}if(!window.SOKMAL_GATED)return;var c='';try{c=localStorage.getItem('sokmal.invite')||''}catch(e){}if(!c)document.documentElement.classList.add('gated')})();`;
   return (
     <>
       <script dangerouslySetInnerHTML={{ __html: lock }} />

@@ -107,7 +107,7 @@ const ymd=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()
    AI는 /api/ai, 하루 횟수는 /api/usage. 사용자 구분은 app/AuthBridge.tsx가 만든 window.SokmalAuth(익명 로그인 + 이메일 연결) */
 const Api={ready:false,auth:null,
   async waitAuth(){for(let i=0;i<200&&!window.SokmalAuth;i++)await new Promise(r=>setTimeout(r,25));return window.SokmalAuth||null;},
-  async init(){this.auth=await this.waitAuth();if(this.auth){try{await this.auth.ready;}catch(e){}}const r=await this.usage();this.needInvite=!!(r&&r.error==='invite_required');this.ready=!!(r&&r.ready);this.mock=!!(r&&r.mock);this.examplePrompts=!!(r&&r.examplePrompts);},
+  async init(){this.auth=await this.waitAuth();if(this.auth){try{await this.auth.ready;}catch(e){}}const r=await this.usage();this.needInvite=!!(r&&r.error==='invite_required');this.needLogin=!!(r&&['login_required','profile_required','pending','blocked'].includes(r.error));this.ready=!!(r&&r.ready);this.mock=!!(r&&r.mock);this.examplePrompts=!!(r&&r.examplePrompts);},
   inviteCode(){try{return localStorage.getItem('sokmal.invite')||'';}catch(e){return '';}},
   async headers(){const hd={'content-type':'application/json'};const ic=this.inviteCode();if(ic)hd['x-sokmal-invite']=ic;if(this.auth){try{Object.assign(hd,await this.auth.headers());}catch(e){}}return hd;},
   async usage(){try{const res=await fetch('/api/usage',{headers:await this.headers(),cache:'no-store'});const j=await res.json();if(j&&j.usage)Usage.set(j.usage);return j;}catch(e){return null;}},
@@ -379,10 +379,17 @@ function mediaPicker(host){
 
 /* ---------- 저장소 ---------- */
 /* 11-26 이식: 저장함은 3단계(서버 이식) 전까지 이 기기(브라우저)에 저장한다. localStorage를 못 쓰면 원래처럼 화면 메모리(새로고침하면 사라짐) */
-const Store={items:[],ready:false,mode:'local',slow:false,draft:null,subs:[],KEY:'sokmal.records',DKEY:'sokmal.design',
+const Store={items:[],ready:false,mode:'local',slow:false,draft:null,subs:[],KEY:'sokmal.records',DKEY:'sokmal.design',cloud:null,
   sub(f){this.subs.push(f)},emit(){this.subs.forEach(f=>f())},
   persist(){if(this.mode!=='local')return true;try{localStorage.setItem(this.KEY,JSON.stringify(this.items));return true;}catch(e){return false;}},
+  /* 11-28 로그인하면 계정 기록(배우의 저장소와 같은 records 표, service='sokmal', 본인만) */
+  fromRow(r){return Object.assign({},r.data||{},{id:r.id,title:r.title||((r.data||{}).title)||''});},
   async init(){
+    if(this.cloud){try{const r=await this.cloud.from('records').select('id,title,data,updated_at').eq('service','sokmal').order('updated_at',{ascending:false}).limit(500);
+        if(r.error)throw r.error;this.mode='account';this.items=(r.data||[]).map(x=>this.fromRow(x));
+        try{this.draft=JSON.parse(localStorage.getItem(this.DKEY)||'null');}catch(e){this.draft=null;}if(this.draft)loadDraft();
+        this.items.sort((x,y)=>(y.createdAt||0)-(x.createdAt||0));this.ready=true;this.emit();return;}
+      catch(e){console.warn('계정 기록을 불러오지 못함',e);this.cloud=null;toast('계정 기록을 불러오지 못해서 이 기기에 저장해요');}}
     try{localStorage.setItem('sokmal.t','1');localStorage.removeItem('sokmal.t');this.mode='local';}catch(e){this.mode='memory';}
     if(this.mode==='local'){try{const v=JSON.parse(localStorage.getItem(this.KEY)||'[]');this.items=Array.isArray(v)?v:[];}catch(e){this.items=[];}
       try{this.draft=JSON.parse(localStorage.getItem(this.DKEY)||'null');}catch(e){this.draft=null;}if(this.draft)loadDraft();}
@@ -390,15 +397,26 @@ const Store={items:[],ready:false,mode:'local',slow:false,draft:null,subs:[],KEY
     this.ready=true;this.emit();
   },
   async add(rec){rec.createdAt=Date.now();rec.updatedAt=rec.createdAt;
+    if(this.mode==='account'){const r=await this.cloud.from('records').insert({service:'sokmal',title:String(rec.title||'').slice(0,200),data:rec}).select('id').single();
+      if(r.error){const e=new Error('save');e.code='cloud';throw e;}this.items.unshift(Object.assign({},rec,{id:r.data.id}));this.emit();return r.data.id;}
     const id='m'+rec.createdAt.toString(36)+Math.random().toString(36).slice(2,6);this.items.unshift(Object.assign({id},rec));
     if(!this.persist()){this.items.shift();const e=new Error('quota');e.code='quota_exceeded';throw e;}
     this.emit();return id;},
   async update(id,patch){patch.updatedAt=Date.now();
+    if(this.mode==='account'){const it=this.items.find(x=>x.id===id);if(!it)return;const next=Object.assign({},it,patch);const data=Object.assign({},next);delete data.id;
+      const r=await this.cloud.from('records').update({title:String(next.title||'').slice(0,200),data}).eq('id',id);if(r.error)throw new Error('save');Object.assign(it,patch);this.emit();return;}
     const it=this.items.find(x=>x.id===id);if(it)Object.assign(it,patch);if(!this.persist())throw new Error('save');this.emit();},
-  async remove(id){this.items=this.items.filter(x=>x.id!==id);if(!this.persist())throw new Error('save');this.emit();},
-  saveDraft(obj){if(this.mode!=='local')return;try{localStorage.setItem(this.DKEY,JSON.stringify(obj));}catch(e){}}
+  async remove(id){if(this.mode==='account'){const r=await this.cloud.from('records').delete().eq('id',id);if(r.error)throw new Error('save');}
+    this.items=this.items.filter(x=>x.id!==id);if(this.mode==='account'){this.emit();return;}if(!this.persist())throw new Error('save');this.emit();},
+  /* 이 기기에 남아 있던 기록을 계정으로 옮기기 (한 번 묻기) */
+  offerMove(){if(this.mode!=='account')return;let local=[];try{local=JSON.parse(localStorage.getItem(this.KEY)||'[]');}catch(e){}if(!Array.isArray(local)||!local.length)return;
+    const btn=h('button',{type:'button',class:'btn small primary'},'계정으로 옮기기');const note=h('div',{class:'note',id:'move-note'},'이 기기에 저장된 기록이 '+local.length+'개 있어요. 내 계정으로 옮길까요? ',btn,h('button',{type:'button',class:'btn small',onclick:()=>note.remove()},'나중에'));
+    btn.addEventListener('click',async()=>{btn.disabled=true;let n=0;for(const rec of local.slice().reverse()){const x=Object.assign({},rec);delete x.id;try{const r=await this.cloud.from('records').insert({service:'sokmal',title:String(x.title||'').slice(0,200),data:x}).select('id').single();if(!r.error){n++;this.items.unshift(Object.assign({},x,{id:r.data.id}));}}catch(e){}}
+      if(n===local.length){try{localStorage.removeItem(this.KEY);}catch(e){}}this.emit();note.remove();toast(n+'개를 계정으로 옮겼어요');});
+    $('#banner').prepend(note);},
+  saveDraft(obj){if(this.mode==='memory')return;try{localStorage.setItem(this.DKEY,JSON.stringify(obj));}catch(e){}}
 };
-async function addRec(rec){if(LIMITS.storageCap&&Store.items.length>=LIMITS.storageCap){toast('저장함이 가득 찼어요. 오래된 기록을 정리해 주세요');return false;}try{await Store.add(rec);return true;}catch(e){toast(e&&e.code==='quota_exceeded'?'저장 공간이 가득 찼어요. 기록을 정리해 주세요':'저장하지 못했어요. 잠시 뒤에 다시 시도해 주세요');return false;}}
+async function addRec(rec){if(LIMITS.storageCap&&Store.items.length>=LIMITS.storageCap){toast('저장함이 가득 찼어요. 오래된 기록을 정리해 주세요');return false;}try{await Store.add(rec);return true;}catch(e){toast(e&&e.code==='cloud'?'계정에 저장하지 못했어요. 잠시 뒤에 다시 시도해 주세요':e&&e.code==='quota_exceeded'?'저장 공간이 가득 찼어요. 기록을 정리해 주세요':'저장하지 못했어요. 잠시 뒤에 다시 시도해 주세요');return false;}}
 function saveAction(kind,work,tagsFn,titlePrefix){return text=>({label:'기록함에 저장',primary:true,fn:async()=>{const w=(work()||'').trim();const ok=await addRec({kind,title:(w?w+' · ':'')+titlePrefix,body:text,work:w,tags:tagsFn?tagsFn():[],status:'',source:'AI',ref:''});if(ok)toast('기록함에 저장했어요'+(Store.mode==='memory'?' (이 화면에서는 새로고침하면 사라져요)':''));}});}
 
 /* ---------- 탭 ---------- */
@@ -755,14 +773,56 @@ function updateBanner(){const b=$('#banner2');if(Store.ready&&Store.mode==='memo
 /* ---------- 내 계정 (11-26 이식: 익명으로 시작, 이메일 연결은 선택) ---------- */
 const Acct={paint(){const host=$('#hub-acct');if(!host)return;const A=Api.auth;if(!A){host.hidden=true;return;}host.hidden=false;
   const st=A.state();const P='margin:6px 0 10px;font-size:14px;color:#2D3748';
-  if(st.mode!=='supabase'){host.replaceChildren(h('b',{},'개발 모드'),h('p',{style:P},'이 기기 아이디로 횟수를 세요. 기록(저장함)은 이 기기에만 저장돼요.'));return;}
-  if(!st.anonymous&&st.email){host.replaceChildren(h('b',{},'내 계정'),h('p',{style:P},st.email+'(으)로 이어 쓰고 있어요. 기록(저장함)은 아직 이 기기에만 저장돼요.'),
-    h('div',{class:'out-acts'},h('button',{type:'button',class:'btn small',onclick:async()=>{await A.signOut();Acct.paint();Api.usage();toast('로그아웃했어요');}},'로그아웃')));return;}
-  const inp=h('input',{type:'email',placeholder:'이메일 주소',autocomplete:'email',maxlength:'200'});
-  const btn=h('button',{type:'button',class:'btn small primary'},'확인 메일 받기');const msg=h('div',{class:'adm-leg',style:'margin-top:6px'});
-  btn.addEventListener('click',async()=>{const v=inp.value.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){toast('이메일 주소를 확인해 주세요');return;}btn.disabled=true;let r;try{r=await A.linkEmail(v);}catch(e){r={msg:'메일을 보내지 못했어요. 잠시 뒤에 다시 눌러 주세요.'};}btn.disabled=false;msg.textContent=r.msg;});
-  host.replaceChildren(h('b',{},'이메일로 이어 쓰기 (선택)'),h('p',{style:P},'지금은 이 기기로만 알아봐요. 이메일을 연결하면 다른 기기에서도 같은 계정으로 이어 써요. 기록(저장함)은 아직 이 기기에만 저장돼요.'),inp,h('div',{class:'out-acts'},btn),msg);
+  if(st.mode==='dev'){host.replaceChildren(h('b',{},'개발 모드'),h('p',{style:P},'이 기기 아이디로 횟수를 세요. 기록(저장함)은 이 기기에만 저장돼요.'));return;}
+  const me=Login.me&&Login.me.profile;const where=Store.mode==='account'?'기록은 내 계정에 저장돼서 다른 기기에서도 보여요.':'기록은 이 기기에 저장돼요.';
+  host.replaceChildren(h('b',{},'내 계정'),h('p',{style:P},(me?me.name+' · '+(me.role||'')+' · ':'')+(st.email||'')),h('p',{style:P+';margin-top:0'},where+' 「배우의 저장소」와 같은 계정이에요.'),
+    h('div',{class:'out-acts'},h('button',{type:'button',class:'btn small',onclick:async()=>{await A.signOut();toast('로그아웃했어요');setTimeout(()=>location.reload(),400);}},'로그아웃')));
 }};
+
+
+/* ---------- 로그인 (11-28): 이메일 숫자 코드 → (처음만) 프로필·동의 → 관리자 승인 → 앱. 배우의 저장소와 같은 계정 ---------- */
+const Login={me:null,email:'',wired:false,
+  show(id){const R=document.documentElement;R.classList.add('gated','gate-ready');['gate-wait','gate-email','gate-otp','gate-profile','gate-pending','gate-blocked'].forEach(x=>{const e=$('#'+x);if(e)e.hidden=x!==id;});window.scrollTo(0,0);},
+  async fetchMe(){const A=Api.auth;const r=await fetch('/api/me',{headers:await A.headers(),cache:'no-store'});return r.ok?r.json():null;},
+  /* 통과하면 true. 아니면 알맞은 단계를 보여 주고 false */
+  async start(){this.wire();const A=Api.auth||await Api.waitAuth();Api.auth=A;if(!A){this.show('gate-email');return false;}try{await A.ready;}catch(e){}
+    if(!A.state().signedIn){this.show('gate-email');return false;}
+    this.show('gate-wait');let me=null;try{me=await this.fetchMe();}catch(e){}
+    if(!me){$('#gate-wait').replaceChildren(h('p',{class:'gate-lead'},'연결이 끊겼어요. 인터넷을 확인하고 새로고침해 주세요.'));return false;}
+    if(!me.user){await A.signOut();this.show('gate-email');return false;}
+    this.me=me;
+    if(!me.profile){if(!$('#gp-name').value)$('#gp-name').value='';this.show('gate-profile');return false;}
+    if(me.access==='blocked'){this.show('gate-blocked');return false;}
+    if(me.access!=='approved'){$('#gate-pending-who').textContent=me.profile.name+' · '+me.user.email;this.show('gate-pending');return false;}
+    document.documentElement.classList.remove('gated');return true;},
+  async pass(){if(await this.start()){if(!location.hash)location.hash='#home';boot();}},
+  wire(){if(this.wired)return;this.wired=true;const L=this;
+    const ef=$('#gate-email'),ei=$('#gate-email-in'),eg=$('#gate-email-go'),em=$('#gate-email-msg');
+    const sendTo=async(v,msgEl,btn)=>{btn.disabled=true;msgEl.textContent='보내는 중…';let r;try{r=await Api.auth.sendCode(v);}catch(e){r={ok:false,msg:'연결이 끊겼어요. 다시 눌러 주세요.'};}btn.disabled=false;msgEl.textContent=r.ok?'':r.msg;return r;};
+    ef.addEventListener('submit',async e=>{e.preventDefault();const v=ei.value.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){em.textContent='이메일 주소를 확인해 주세요.';ei.focus();return;}
+      const r=await sendTo(v,em,eg);if(!r.ok)return;L.email=v;$('#gate-otp-to').textContent=v;$('#gate-otp-msg').textContent=r.msg||'';$('#gate-otp-in').value='';L.show('gate-otp');$('#gate-otp-in').focus();});
+    const of=$('#gate-otp'),oi=$('#gate-otp-in'),og=$('#gate-otp-go'),om=$('#gate-otp-msg');
+    oi.addEventListener('input',()=>{const d=oi.value.replace(/\D/g,'').slice(0,10);if(d!==oi.value)oi.value=d;});
+    of.addEventListener('submit',async e=>{e.preventDefault();const v=oi.value.replace(/\D/g,'');if(v.length<6){om.textContent='메일로 온 숫자 코드를 넣어 주세요.';oi.focus();return;}
+      og.disabled=true;om.textContent='확인하는 중…';let r;try{r=await Api.auth.verifyCode(L.email,v);}catch(x){r={ok:false,msg:'연결이 끊겼어요. 다시 눌러 주세요.'};}og.disabled=false;
+      if(!r.ok){om.textContent=r.msg;oi.focus();return;}om.textContent='';L.pass();});
+    $('#gate-otp-back').addEventListener('click',()=>{L.show('gate-email');ei.focus();});
+    $('#gate-otp-again').addEventListener('click',async()=>{const r=await sendTo(L.email,om,og);if(r.ok)om.textContent='새 코드를 보냈어요.';});
+    const role=$('#gp-role');let roleV='';
+    role.addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;roleV=b.textContent;$$('.chip',role).forEach(x=>x.setAttribute('aria-checked',String(x===b)));});
+    const pf=$('#gate-profile'),pm=$('#gp-msg'),pg=$('#gp-go');
+    pf.addEventListener('submit',async e=>{e.preventDefault();const name=$('#gp-name').value.trim();
+      if(!name){pm.textContent='이름을 넣어 주세요.';$('#gp-name').focus();return;}
+      if(!roleV){pm.textContent='하는 일을 하나 골라 주세요.';return;}
+      if(!$('#gp-14').checked){pm.textContent='만 14세 이상만 가입할 수 있어요.';return;}
+      if(!$('#gp-consent').checked){pm.textContent='개인정보 수집·이용에 동의해 주세요.';return;}
+      pg.disabled=true;pm.textContent='저장하는 중…';let ok=false;
+      try{const r=await fetch('/api/me',{method:'POST',headers:Object.assign({'content-type':'application/json'},await Api.auth.headers()),body:JSON.stringify({profile:{name,role:roleV,affiliation:$('#gp-aff').value.trim(),over14:true,consent:true}})});ok=r.ok;}catch(x){}
+      pg.disabled=false;if(!ok){pm.textContent='저장하지 못했어요. 잠시 뒤에 다시 눌러 주세요.';return;}pm.textContent='';L.pass();});
+    $('#gate-pending-check').addEventListener('click',async()=>{$('#gate-pending-msg').textContent='확인하는 중…';const ok=await L.start();if(ok){L.pass();}else if(!$('#gate-pending').hidden)$('#gate-pending-msg').textContent='아직 승인 전이에요. 승인되면 다시 눌러 주세요.';});
+    $$('.gate-logout').forEach(b=>b.addEventListener('click',async()=>{await Api.auth.signOut();L.me=null;L.show('gate-email');}));
+  }
+};
 
 /* ---------- 입장 화면: 초대 코드 (11-26). 코드를 넣기 전에는 앱이 보이지 않음. 나중에 로그인이 이 자리에 들어감 ---------- */
 const Invite={wired:false,
@@ -783,15 +843,24 @@ const Invite={wired:false,
 
 /* ---------- 시작 ---------- */
 route();
-(async()=>{
+let booted=false;
+async function boot(){if(booted)return;booted=true;
   await Api.init();
+  if(Api.needLogin){booted=false;Login.start();return;}
   if(Api.needInvite){try{localStorage.removeItem('sokmal.invite');}catch(e){}Invite.show();} /* 저장된 코드가 없거나 더는 맞지 않음 → 입장 화면 */
   else if(!Api.ready)$('#banner').prepend(h('div',{class:'note warn'},'이 화면에서는 AI 답변을 쓸 수 없어요. 양식은 볼 수 있지만 분석·독백 만들기는 동작하지 않아요.'));
   else if(Api.examplePrompts&&!Api.mock)$('#banner').prepend(h('div',{class:'note warn',id:'example-note'},'예시 프롬프트로 돌고 있어요. 답의 품질은 실제 SOKMAL과 달라요.'));
   else if(Api.mock)$('#banner').prepend(h('div',{class:'note warn',id:'mock-note'},'시험 모드: AI 대신 정해 둔 가짜 답이 나와요. 진짜 AI로 바꾸는 법은 「바탕화면에서 열기」 안내서에 있어요.'));
   if(Api.auth){Acct.paint();if(Api.auth.onChange)Api.auth.onChange(()=>{Acct.paint();Api.usage();});}
   Shared.load();
+  if(Api.auth&&Api.auth.client)Store.cloud=Api.auth.client();
   await Store.init();
+  Acct.paint();
+  Store.offerMove();
   Admin.check();
+}
+(async()=>{
+  if(window.SOKMAL_CFG&&window.SOKMAL_CFG.auth){if(!(await Login.start()))return;}
+  boot();
 })();
 })();

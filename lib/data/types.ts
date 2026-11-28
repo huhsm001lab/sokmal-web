@@ -1,3 +1,4 @@
+import type { Access, Profile } from '../auth';
 import type { WorkNote } from '../notes';
 import type { MonoGuide } from '../guide';
 import type { WaitEntry } from '../waitlist';
@@ -102,6 +103,12 @@ export interface DataStore {
   notes(): Promise<WorkNote[]>;
   putNote(n: WorkNote): Promise<void>;
   removeNote(id: string): Promise<void>;
+  /** 로그인 사용자 프로필·승인 (11-28) */
+  getProfile(uid: string): Promise<Profile | null>;
+  putProfile(uid: string, p: Profile): Promise<void>;
+  getAccess(uid: string): Promise<Access | null>;
+  setAccess(uid: string, a: Access): Promise<void>;
+  members(): Promise<{ uid: string; profile: Profile; access: Access }[]>;
 }
 
 export const emptyUsage = (): DayUsage => ({

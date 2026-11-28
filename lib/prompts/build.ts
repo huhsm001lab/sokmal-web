@@ -4,6 +4,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import * as P from './sokmal-prompts.js';
 import { LIMITS, type CounterKey } from '../limits';
 import { applyMonoSwitches, DEFAULT_SWITCHES, switchTag, type PromptSwitches } from './switches';
+import { applyMakeGuide, EMPTY_GUIDE, type MonoGuide } from '../guide';
 
 export class BadInput extends Error {
   constructor(public code: 'bad_request' | 'prompt_too_large', msg: string) {
@@ -82,6 +83,8 @@ export type Job = {
   base: Base | null;
   /** [확인]·[모름] 답이면 횟수를 돌려줄지 */
   refundMeta: boolean;
+  /** 검수 기준 (있으면 1차 답을 이 기준으로 검수·수정한 최종본을 보냄) */
+  review?: string;
 };
 
 /** 오늘 남은 횟수를 알려 주는 함수 (전문 해석의 "오늘 마지막 답" 판단에 씀) */
@@ -178,14 +181,14 @@ function parseBase(v: unknown): Base {
 }
 
 /* ---------- 프롬프트 조립 ---------- */
-export function basePrompt(b: Base, sw: PromptSwitches = DEFAULT_SWITCHES): string {
+export function basePrompt(b: Base, sw: PromptSwitches = DEFAULT_SWITCHES, guide: MonoGuide = EMPTY_GUIDE): string {
   switch (b.kind) {
     case 'interpret':
       return b.mode === 'exam'
         ? P.examPromptOf({ text: b.input.text, work: b.input.work, part: b.input.part, mine: b.input.mine })
         : P.proPromptOf({ ...b.input, last: b.last });
     case 'mono':
-      return applyMonoSwitches(P.monoPrompt(b.c, b.qa, b.mMode, b.hist), sw);
+      return applyMakeGuide(applyMonoSwitches(P.monoPrompt(b.c, b.qa, b.mMode, b.hist), sw), sw.monoRules ? guide.make : '', b.c.kw.mtype);
     case 'image':
       return P.imagePromptOf(b.input);
     case 'design':
@@ -205,7 +208,8 @@ function checkMono(b: MonoBase) {
 const MAX_CHAT_TURNS = 40;
 
 /** 요청 하나를 서버가 할 일로 바꾼다 */
-export function buildJob(body: unknown, left: LeftFn, sw: PromptSwitches = DEFAULT_SWITCHES): Job {
+export function buildJob(body: unknown, left: LeftFn, sw: PromptSwitches = DEFAULT_SWITCHES, guide: MonoGuide = EMPTY_GUIDE): Job {
+  const tag = switchTag(sw) + (sw.monoRules && guide.make ? ' [제작 기준]' : '');
   if (!isObj(body)) throw new BadInput('bad_request', '요청');
   const user = (content: string): Anthropic.Beta.BetaMessageParam => ({ role: 'user', content });
 
@@ -229,12 +233,13 @@ export function buildJob(body: unknown, left: LeftFn, sw: PromptSwitches = DEFAU
       const b = parseBase({ ...body, kind: 'mono' }) as MonoBase;
       checkMono(b);
       return {
-        feature: '독백·' + b.mMode + switchTag(sw),
+        feature: '독백·' + b.mMode + tag,
         tier: 'main',
-        messages: [user(basePrompt(b, sw))],
+        messages: [user(basePrompt(b, sw, guide))],
         counter: { key: 'mono', kind: 'run', limit: LIMITS.daily.mono },
         base: b,
         refundMeta: true,
+        ...(guide.reviewOn && guide.review ? { review: guide.review } : {}),
       };
     }
     case 'mono_ask': {
@@ -274,7 +279,7 @@ export function buildJob(body: unknown, left: LeftFn, sw: PromptSwitches = DEFAU
         throw new BadInput('bad_request', '이 결과는 이어서 묻기를 쓰지 않음');
       }
       // 원본 브라우저 코드와 같은 순서로 대화를 다시 쌓는다
-      const msgs: Anthropic.Beta.BetaMessageParam[] = [user(basePrompt(base, sw)), { role: 'assistant', content: first }];
+      const msgs: Anthropic.Beta.BetaMessageParam[] = [user(basePrompt(base, sw, guide)), { role: 'assistant', content: first }];
       turns.forEach((t, i) => {
         msgs.push(user(wrap(t.q, { turn: i + 2, last: false })));
         msgs.push({ role: 'assistant', content: t.a });
@@ -282,7 +287,7 @@ export function buildJob(body: unknown, left: LeftFn, sw: PromptSwitches = DEFAU
       const last = base.kind === 'interpret' && base.mode === 'pro' ? left('pro') === 1 : false;
       msgs.push(user(wrap(q, { turn: turns.length + 2, last })));
       return {
-        feature: base.kind === 'interpret' ? '해석·' + base.mode + '·이어서' : '독백·대화' + switchTag(sw),
+        feature: base.kind === 'interpret' ? '해석·' + base.mode + '·이어서' : '독백·대화' + tag,
         tier: 'main',
         messages: msgs,
         counter,

@@ -210,7 +210,11 @@ function mockKey(job: Job): string {
 
 async function mockRun(job: Job, model: string, signal: AbortSignal, onText: (d: string) => void): Promise<AiResult> {
   const key = mockKey(job);
-  const text = key === 'check' ? '[확인] 붙여 넣은 글이 희곡이 맞나요?' : (MOCK[key] ?? MOCK.design);
+  const last = job.messages[job.messages.length - 1];
+  const isReview = typeof last?.content === 'string' && last.content.startsWith('[검수 단계');
+  const text = isReview
+    ? '[검수]\n대사의 자연스러움 12/15 — "시험용 줄"이 설명적이라 고침\n수정 전 총점: 71/100\n수정 후 총점: 84/100\n===최종 독백===\n' + (MOCK.mono ?? '').replace('## 독백', '## 독백\n(검수 뒤 최종본)')
+    : key === 'check' ? '[확인] 붙여 넣은 글이 희곡이 맞나요?' : (MOCK[key] ?? MOCK.design);
   const parts = text.match(/[\s\S]{1,24}/g) ?? [];
   for (const p of parts) {
     if (signal.aborted) throw new AiAborted();

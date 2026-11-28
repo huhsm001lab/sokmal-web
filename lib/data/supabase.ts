@@ -1,4 +1,5 @@
 // Supabase(Postgres) 저장소. 서버에서만, 서비스 키로 쓴다. 표와 함수는 supabase/migrations/001_init.sql
+import { EMPTY_GUIDE } from '../guide';
 import { DEFAULT_SWITCHES } from '../prompts/switches';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { CounterKey } from '../limits';
@@ -56,6 +57,14 @@ export class SupabaseStore implements DataStore {
     return [];
   }
   async removeWaitlist() {}
+  async getGuide() {
+    return { ...EMPTY_GUIDE };
+  }
+  async setGuide() {}
+  async logReview() {}
+  async reviews() {
+    return [];
+  }
   async logCall(r: CallLog) {
     const { error } = await this.db.from('ai_calls').insert({
       uid: r.uid,

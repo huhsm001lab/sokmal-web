@@ -6,6 +6,7 @@ import { aiNotReady, appBudgetActive, config, modelFor } from '@/lib/config';
 import { kstDay, kstMonthStartIso, LIMITS, type CounterKey } from '@/lib/limits';
 import { BadInput, buildJob, isMetaReply, type Job } from '@/lib/prompts/build';
 import { DEFAULT_SWITCHES } from '@/lib/prompts/switches';
+import { EMPTY_GUIDE, parseReview, reviewWrap } from '@/lib/guide';
 import { inviteOk } from '@/lib/invite';
 import { getStore, inviteCodeOf, json, userIdOf } from '@/lib/server';
 import type { CallLog } from '@/lib/data/types';
@@ -43,8 +44,8 @@ export async function POST(req: Request) {
 
   let job: Job;
   try {
-    const sw = await store.getSwitches().catch(() => DEFAULT_SWITCHES);
-    job = buildJob(body, left, sw);
+    const [sw, guide] = await Promise.all([store.getSwitches().catch(() => DEFAULT_SWITCHES), store.getGuide().catch(() => EMPTY_GUIDE)]);
+    job = buildJob(body, left, sw, guide);
   } catch (e) {
     if (e instanceof BadInput) return json({ error: e.code }, e.code === 'prompt_too_large' ? 413 : 400);
     throw e;
@@ -85,13 +86,13 @@ export async function POST(req: Request) {
         }
       };
       let text = '';
-      const log = (status: CallLog['status'], r: Pick<AiResult, 'tokens' | 'usd'> | null, usedModel: string, detail?: string) => {
+      const log = (status: CallLog['status'], r: Pick<AiResult, 'tokens' | 'usd'> | null, usedModel: string, detail?: string, feature = job.feature) => {
         const tokens = r?.tokens ?? { input: 0, output: 0, cacheWrite: 0, cacheRead: 0 };
         const krw = r?.usd != null && config.usdKrw > 0 ? toKrw(r.usd, config.usdKrw) : 0;
         return store
           .logCall({
             uid,
-            feature: job.feature,
+            feature,
             model: usedModel,
             status,
             inputTokens: tokens.input,
@@ -104,6 +105,51 @@ export async function POST(req: Request) {
           .catch((e) => console.error('[sokmal] 비용 기록 실패', e));
       };
       try {
+        if (job.review) {
+          // 검수 켜짐 (11-27): 1차로 쓰고(배우에게 흘려보내지 않음) → 검수 기준으로 평가·수정 → 최종본만 보냄
+          send({ p: 'write' });
+          const first = await runAi(job, ctl.signal, () => {});
+          if (first.stop === 'refusal') {
+            await refund();
+            await log('refused', first, first.model);
+            send({ error: 'refused' });
+            return;
+          }
+          const meta = isMetaReply(first.text);
+          await log(meta ? 'meta' : 'ok', first, first.model);
+          let finalText = first.text;
+          let truncated = first.stop === 'length';
+          if (meta) {
+            if (job.refundMeta) await refund();
+          } else {
+            send({ p: 'review' });
+            const reviewFeature = job.feature + '·검수';
+            try {
+              const r2 = await runAi(
+                { ...job, feature: reviewFeature, counter: null, messages: [...job.messages, { role: 'assistant', content: first.text }, { role: 'user', content: reviewWrap(job.review) }] },
+                ctl.signal,
+                () => {},
+              );
+              await log(r2.stop === 'refusal' ? 'refused' : 'ok', r2, r2.model, undefined, reviewFeature);
+              const pr = parseReview(r2.text);
+              if (pr.final) {
+                finalText = pr.final;
+                truncated = false;
+              }
+              await store
+                .logReview({ uid, feature: job.feature, before: pr.before, after: pr.after, used: !!pr.final, review: pr.review, draft: first.text, final: finalText })
+                .catch((e) => console.error('[sokmal] 검수 기록 실패', e));
+            } catch (e2) {
+              if (ctl.signal.aborted) throw e2;
+              // 검수가 실패해도 1차 독백은 보낸다
+              console.error('[sokmal] 검수 실패', e2);
+              await log('error', null, model, aiErrorDetail(e2), reviewFeature);
+            }
+          }
+          send({ t: finalText });
+          send({ done: true, text: finalText, truncated, base: job.base, usage: await store.usage(uid, day) });
+          return;
+        }
         const r = await runAi(job, ctl.signal, (d) => {
           text += d;
           send({ t: d });

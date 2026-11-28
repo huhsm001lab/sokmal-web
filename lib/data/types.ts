@@ -1,8 +1,21 @@
+import type { MonoGuide } from '../guide';
 import type { WaitEntry } from '../waitlist';
 import type { PromptSwitches } from '../prompts/switches';
 import type { CounterKey } from '../limits';
 
 export type DayUsage = Record<CounterKey, { run: number; follow: number; hits: number }>;
+
+export type ReviewLog = {
+  uid: string;
+  feature: string;
+  before: number | null;
+  after: number | null;
+  /** 최종본을 썼는지 (형식이 깨져 1차 독백을 그대로 보냈으면 false) */
+  used: boolean;
+  review: string;
+  draft: string;
+  final: string;
+};
 
 export type CallLog = {
   uid: string;
@@ -78,6 +91,12 @@ export interface DataStore {
   addWaitlist(e: WaitEntry): Promise<'new' | 'updated' | 'full'>;
   waitlist(): Promise<WaitEntry[]>;
   removeWaitlist(e: Pick<WaitEntry, 'contact' | 'kind'>): Promise<void>;
+  /** 관리자가 넣는 독백 제작·검수 기준 */
+  getGuide(): Promise<MonoGuide>;
+  setGuide(g: MonoGuide): Promise<void>;
+  /** 검수 기록 (관리자만 봄, 최근 300건) */
+  logReview(r: ReviewLog): Promise<void>;
+  reviews(limit?: number): Promise<(ReviewLog & { at: string })[]>;
 }
 
 export const emptyUsage = (): DayUsage => ({

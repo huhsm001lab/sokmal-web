@@ -87,13 +87,31 @@ try {
   await a.locator('#sw-monoRules').waitFor({ timeout: 8000 });
   assert.equal(await a.isChecked('#sw-monoRules'), false, '끈 지침이 새로고침 뒤에도 꺼져 있어야 함');
   assert.equal(await a.isChecked('#sw-monoExamples'), true);
+  // 지침 다시 켜고, 제작·검수 기준 저장 → 독백 1번 → 배우는 최종본을 받고, 관리자에 검수 기록
+  await a.click('#sw-monoRules');
+  await a.waitForFunction(() => /켜짐/.test(document.querySelector('label[for="sw-monoRules"] .sw-state')?.textContent || ''), null, { timeout: 5000 });
+  await a.fill('#guide-make', '01. 대사의 자연스러움\n* 읽기 좋은 글보다 말하기 좋은 대사');
+  await a.fill('#guide-review', '01. 창작 독백 평가표 (100점 만점)');
+  await a.check('#guide-review-on');
+  await a.locator('button', { hasText: '기준 저장' }).click();
+  await a.locator('#guide-make').waitFor({ timeout: 5000 });
+  await a.waitForFunction(() => /마지막 저장/.test(document.querySelector('#adm-body')?.textContent || ''), null, { timeout: 5000 });
+  const mono = { kind: 'mono', mMode: 'new', hist: [], qa: null, c: { pro: false, kw: { mtype: '입시 독백', writer: '', emotion: ['서운함'], situation: ['사과'], listener: ['친구'], mood: [], temper: [], hide: '', length: '1분' }, story: '시험', draft: '', memo: '', src: '', srcFrom: '', mat: '' } };
+  const res = await fetch(BASE + '/api/ai', { method: 'POST', headers: { 'content-type': 'application/json', 'x-sokmal-invite': '705162' }, body: JSON.stringify(mono) });
+  const lines = (await res.text()).trim().split('\n').map((l) => JSON.parse(l));
+  assert.ok(lines.some((l) => l.p === 'review'), '검수 단계 신호가 와야 함');
+  const done = lines.find((l) => l.done);
+  assert.ok(done && done.text.includes('(검수 뒤 최종본)') && !done.text.includes('수정 전 총점'), '배우는 검수 내용 없이 최종본만 받아야 함');
+  await a.reload();
+  await a.locator('summary', { hasText: '점수 71 → 84' }).waitFor({ timeout: 8000 });
+  assert.match(await a.locator('#adm-body').textContent(), /독백·new \[제작 기준\]·검수/, 'AI 호출 기록에 검수 호출이 보여야 함');
   await a.screenshot({ path: OUT + '07-admin.png', fullPage: true });
   // 폰 화면에서 가로로 넘치지 않는지 (표는 안에서 밀림)
   await a.setViewportSize({ width: 390, height: 844 });
   const w = await a.evaluate(() => document.documentElement.scrollWidth);
   assert.ok(w <= 392, '폰 화면에서 페이지가 가로로 넘침: ' + w);
   assert.deepEqual(errors, []);
-  console.log('관리자 페이지 확인 통과 (서버 차단·틀린 코드·테스터 코드·AI 호출·의견·후기·이름 메모·랜딩 표시·지침 스위치·폰 너비)');
+  console.log('관리자 페이지 확인 통과 (서버 차단·틀린 코드·테스터 코드·AI 호출·의견·후기·이름 메모·랜딩 표시·지침 스위치·제작·검수 기준·폰 너비)');
 } catch (e) {
   console.log('실패:', e.message);
   code = 1;

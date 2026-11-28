@@ -68,6 +68,8 @@ function makeOut(host){
     set(t){o.text=t;status.textContent='';if(!pt.firstChild&&/^\s*\[상대\]/m.test(t))pt.append(partnerToggle());renderText(body,t);},
     finish(actions,truncated,ctx){stop.hidden=true;status.textContent=truncated?'답이 길어 중간에 끊겼어요. 입력을 줄여서 다시 시도해 보세요.':'';acts.replaceChildren(...actions.map(a=>h('button',{type:'button',class:'btn small'+(a.primary?' primary':''),onclick:a.fn},a.label)));acts.hidden=false;
       if(ctx){const meta=Object.assign({},o.meta||{});const add=meta.extra?meta.extra(ctx.text):null;const chat=meta.chatCfg&&!isMetaReply(ctx.text)?chatBlock(ctx,meta.chatCfg):null;extra.replaceChildren(add||'',h('p',{class:'ai-note'},'AI와 함께 쓴 글이에요. 고르고 고치고 버리는 건 당신의 몫이에요.'),chat?chat.el:'',isMetaReply(ctx.text)?'':fbBlock(meta,()=>chat?chat.turns():0));}},
+    /* 11-27 검수 단계: 쓰는 동안·다듬는 동안 상태 글 */
+    phase(p){if(!o.text)status.textContent=p==='review'?'쓴 독백을 기준에 맞춰 다시 살피고 다듬는 중… (조금 더 걸려요)':'쓰는 중…';},
     fail(msg,keepActions){stop.hidden=true;status.textContent=msg;if(!o.text)body.replaceChildren();}
   };
   return o;
@@ -84,7 +86,7 @@ async function runAI({spec,out,btn,actions,onDone}){
   if(!Api.ready){toast('이 화면에서는 AI 기능을 쓸 수 없어요');return;}
   const ctl=new AbortController();out.start(()=>ctl.abort());btn.disabled=true;
   try{
-    const r=await Api.run(spec,{signal:ctl.signal,onText:t=>out.set(t)});
+    const r=await Api.run(spec,{signal:ctl.signal,onText:t=>out.set(t),onPhase:p=>out.phase&&out.phase(p)});
     if(onDone){try{await onDone(r.text);}catch(x){}}out.set(r.text);out.finish(actions(r.text,()=>runAI({spec,out,btn,actions,onDone})),r.truncated,{base:r.base,text:r.text});
   }catch(e){
     if(e&&e.text)out.set(e.text);
@@ -117,7 +119,7 @@ const Api={ready:false,auth:null,
     const rd=res.body.getReader();const dec=new TextDecoder();let buf='',text='',done=null,err=null;
     try{for(;;){const r=await rd.read();if(r.done)break;buf+=dec.decode(r.value,{stream:true});let i;
       while((i=buf.indexOf('\n'))>=0){const line=buf.slice(0,i);buf=buf.slice(i+1);if(!line.trim())continue;let m;try{m=JSON.parse(line);}catch(x){continue;}
-        if(m.t!=null){text+=m.t;if(onText)onText(text);}else if(m.done)done=m;else if(m.error)err=m;}}}
+        if(m.t!=null){text+=m.t;if(onText)onText(text);}else if(m.done)done=m;else if(m.error)err=m;else if(m.p&&o&&o.onPhase)o.onPhase(m.p);}}}
     catch(e){throw {code:signal&&signal.aborted?'cancelled':'network',text:text||undefined};}
     if(err){if(err.error==='refused'){if(onText)onText('');throw {code:'refused'};}throw {code:err.error,text:err.text||undefined};}
     if(!done)throw {code:'network',text:text||undefined};

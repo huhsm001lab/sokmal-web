@@ -11,12 +11,15 @@
 //   admin:approved    해시  uid → '1' (랜딩에 쓸 후기)
 //   admin:switches    값    관리자 스위치 JSON (독백 지침·예시 켜기/끄기)
 //   waitlist          해시  연락처 열쇠 → 대기 명단 JSON (소개 페이지에서 남김)
+//   admin:guide       값    독백 제작·검수 기준 JSON (관리자가 넣음)
+//   reviews           목록  독백 검수 기록(JSON, 최신이 앞) 300건
+import { cleanGuide, type MonoGuide } from '../guide';
 import { hideKeys } from '../config';
 import { WAIT_MAX, waitKey, type WaitEntry } from '../waitlist';
 import { cleanSwitches, type PromptSwitches } from '../prompts/switches';
 import type { CounterKey } from '../limits';
 import type { Kv } from './kv';
-import { emptyUsage, type AdminSnapshot, type CallLog, type DataStore, type FeedbackDoc, type TesterRow } from './types';
+import { emptyUsage, type AdminSnapshot, type CallLog, type DataStore, type FeedbackDoc, type ReviewLog, type TesterRow } from './types';
 
 const KEYS: CounterKey[] = ['exam', 'pro', 'mono'];
 const num = (v: unknown) => {
@@ -132,6 +135,20 @@ export class KvStore implements DataStore {
     if (Object.keys(all).length >= WAIT_MAX) return 'full';
     const added = await this.kv.hsetnx('waitlist', k, JSON.stringify(e));
     return Number(added) === 1 ? 'new' : 'updated';
+  }
+  async getGuide(): Promise<MonoGuide> {
+    return cleanGuide(parse<unknown>(await this.kv.get('admin:guide')));
+  }
+  async setGuide(g: MonoGuide) {
+    await this.kv.set('admin:guide', JSON.stringify(cleanGuide(g)));
+  }
+  async logReview(r: ReviewLog) {
+    const cut = (s: string) => s.slice(0, 12_000);
+    await this.kv.lpush('reviews', JSON.stringify({ ...r, review: cut(r.review), draft: cut(r.draft), final: cut(r.final), at: new Date().toISOString() }));
+    await this.kv.ltrim('reviews', 0, 299);
+  }
+  async reviews(limit = 50) {
+    return (await this.kv.lrange('reviews', 0, limit - 1)).map((v) => parse<ReviewLog & { at: string }>(v)).filter((v): v is ReviewLog & { at: string } => !!v);
   }
   async removeWaitlist(e: Pick<WaitEntry, 'contact' | 'kind'>) {
     await this.kv.hdel('waitlist', waitKey(e));

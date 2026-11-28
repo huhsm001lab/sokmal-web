@@ -235,3 +235,7 @@ html.gated .wrap{display:none}
 .ext-main{display:flex;width:100%;box-sizing:border-box;justify-content:center;align-items:center;text-decoration:none}
 .ext-links{display:flex;justify-content:center;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:14px}
 .ext-links a{color:var(--navy);text-decoration:underline;text-underline-offset:3px;padding:4px 2px}
+/* 관리자: 독백 기준 편집 (11-27) */
+.guide-ta{display:block;width:100%;box-sizing:border-box;min-height:220px;font:inherit;font-size:14px;line-height:1.6;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);resize:vertical;margin:4px 0 2px}
+.guide-pre{white-space:pre-wrap;font:inherit;font-size:13px;line-height:1.6;background:var(--soft2);border-radius:8px;padding:10px;margin:4px 0 10px;max-height:420px;overflow:auto}
+details.adm-row summary{cursor:pointer;font-size:14px}

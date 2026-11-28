@@ -270,20 +270,51 @@
         if (r.status === 200 && r.j.switches) {
           Object.assign(sw, r.j.switches); d.switches = sw;
           state.textContent = sw[key] ? '켜짐' : '꺼짐';
-          toast(title + (sw[key] ? '을 켰어요' : '을 껐어요') + '. 다음 독백부터 적용돼요');
+          toast(title + (sw[key] ? ' 켰어요' : ' 껐어요') + '. 다음 독백부터 적용돼요');
         } else { box.checked = !box.checked; toast('바꾸지 못했어요. 다시 눌러 주세요'); }
       });
       return h('label', { class: 'sw-row', for: 'sw-' + key }, box, h('span', { class: 'sw-txt' }, h('b', {}, title), h('span', {}, desc)), state);
     };
     const swCard = h('div', { class: 'card sw-card' }, h('h3', {}, '독백 지침 스위치'),
       h('p', { class: 'adm-leg' }, '끄면 바로 다음 독백부터 모든 테스터에게 적용돼요. AI 호출 기록에 "(지침 끔)"처럼 표시돼서 나중에 비교할 수 있어요.'),
-      swRow('monoRules', '쓰는 기준 7줄', '말하려는 것 하나, 대화, 행동, 일상의 일, 소품 금지 등'),
+      swRow('monoRules', '쓰는 기준', '기본 7줄. 아래 「제작 기준」을 넣으면 그 기준으로 바뀌어요'),
       swRow('monoExamples', '송무 예시 독백 5편', '말의 감각을 참고하라고 함께 보내는 예시'),
       h('p', { class: 'adm-leg' }, '둘 다 꺼도 배우의 재료(이야기·답)와 결과 형식은 그대로 보내요.'));
 
+    /* 독백 기준 (11-27): 제작 기준·검수 기준을 한글 그대로 넣고 저장 → 다음 독백부터 적용 */
+    const g = Object.assign({ make: '', review: '', reviewOn: false, updatedAt: null }, d.guide || {});
+    const ta = (v, ph) => { const t = h('textarea', { class: 'guide-ta', placeholder: ph, maxlength: '30000' }); t.value = v; return t; };
+    const makeTa = ta(g.make, '여기에 「창작 독백 제작 기준」을 붙여 넣어요. 비워 두면 기본 7줄로 써요.');
+    const reviewTa = ta(g.review, '여기에 「평가 및 검수 기준」을 붙여 넣어요. 비워 두면 검수하지 않아요.');
+    const cnt = (t) => { const c = h('span', { class: 'adm-leg' }); const f = () => { c.textContent = t.value.length.toLocaleString('ko-KR') + ' / 30,000자'; }; t.addEventListener('input', f); f(); return c; };
+    const revOn = h('input', { type: 'checkbox', id: 'guide-review-on', role: 'switch' }); revOn.checked = !!g.reviewOn;
+    const saveG = h('button', { type: 'button', class: 'btn primary' }, '기준 저장');
+    saveG.addEventListener('click', async () => {
+      saveG.disabled = true;
+      const r = await api('POST', { guide: { make: makeTa.value, review: reviewTa.value, reviewOn: revOn.checked } }).catch(() => ({ status: 0 }));
+      saveG.disabled = false;
+      if (r.status === 200 && r.j.guide) { d.guide = r.j.guide; toast('기준을 저장했어요. 다음 독백부터 적용돼요'); render(d); } else toast('저장하지 못했어요. 다시 눌러 주세요');
+    });
+    const gCard = h('div', { class: 'card' }, h('h3', {}, '독백 기준 (제작 · 검수)'),
+      h('p', { class: 'adm-leg' }, '한글 그대로 붙여 넣고 저장하면 바로 다음 독백부터 적용돼요. 다시 배포할 필요 없어요. 위 스위치에서 「쓰는 기준」을 끄면 제작 기준도 함께 꺼져요.' + (g.updatedAt ? ' 마지막 저장: ' + timeOf(g.updatedAt) : '')),
+      h('label', { class: 'f', for: 'guide-make' }, '창작 독백 제작 기준'), Object.assign(makeTa, { id: 'guide-make' }), cnt(makeTa),
+      h('label', { class: 'f', for: 'guide-review' }, '평가 및 검수 기준'), Object.assign(reviewTa, { id: 'guide-review' }), cnt(reviewTa),
+      h('label', { class: 'sw-row', for: 'guide-review-on' }, revOn, h('span', { class: 'sw-txt' }, h('b', {}, '검수 단계 켜기'), h('span', {}, '1차로 쓴 독백을 검수 기준으로 평가·수정해 최종본만 배우에게 보내요. AI를 두 번 불러 시간·비용이 약 두 배예요.'))),
+      h('div', { class: 'out-acts' }, saveG));
+
+    /* 검수 기록 (관리자만) */
+    const rv = d.reviews || [];
+    const rvsCard = h('div', { class: 'card' }, h('h3', {}, '독백 검수 기록 (최근 ' + rv.length + '건)'),
+      rv.length ? null : h('div', { class: 'adm-leg' }, '아직 없어요. 검수 단계를 켜면 독백마다 여기에 남아요.'),
+      ...rv.map((x) => h('details', { class: 'adm-row' },
+        h('summary', {}, timeOf(x.at) + ' · ' + who(x.uid) + ' · ' + x.feature + ' · 점수 ' + (x.before ?? '?') + ' → ' + (x.after ?? '?') + (x.used ? '' : ' · 형식이 깨져 1차본을 보냄')),
+        h('div', { class: 'adm-leg', style: 'margin-top:8px' }, '검수'), h('pre', { class: 'guide-pre' }, x.review),
+        h('div', { class: 'adm-leg' }, '1차 독백'), h('pre', { class: 'guide-pre' }, x.draft),
+        h('div', { class: 'adm-leg' }, '최종 (배우가 받은 것)'), h('pre', { class: 'guide-pre' }, x.final))));
+
     body.replaceChildren(
       ...notes.map((n) => h('div', { class: 'note warn' }, n)),
-      swCard, stats, tCard, cCard, ind, sv, rvCard, nCard, wCard,
+      swCard, gCard, rvsCard, stats, tCard, cCard, ind, sv, rvCard, nCard, wCard,
       h('div', { class: 'out-acts', style: 'margin:16px 0 40px' }, csvFb, csvCalls, csvWait),
       h('p', { class: 'adm-leg' }, '저장소: ' + ({ redis: 'Upstash Redis', supabase: 'Supabase', file: '내 컴퓨터 파일', memory: '서버 메모리(꺼지면 사라짐)' }[m.storage] || m.storage) + ' · AI: ' + (m.provider === 'openai' ? 'OpenAI' : 'Anthropic')));
   }

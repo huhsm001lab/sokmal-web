@@ -4,6 +4,7 @@ import { pricesKnown } from '@/lib/ai';
 import { aiNotReady, config, hideKeys } from '@/lib/config';
 import { kstMonthStartIso } from '@/lib/limits';
 import { cleanSwitches } from '@/lib/prompts/switches';
+import { cleanGuide } from '@/lib/guide';
 import { getStore, json, storeKind } from '@/lib/server';
 
 export const runtime = 'nodejs';
@@ -34,6 +35,8 @@ export async function GET(req: Request) {
     monthCostKrw: await s.costSince(kstMonthStartIso()),
     switches: await s.getSwitches(),
     waitlist: await s.waitlist(),
+    guide: await s.getGuide(),
+    reviews: await s.reviews(50),
     meta: {
       storage: storeKind(),
       persistent: ['redis', 'supabase', 'file'].includes(storeKind()),
@@ -50,7 +53,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const s = gate(req);
   if (s instanceof Response) return s;
-  let b: { name?: { uid?: unknown; name?: unknown }; approve?: { uid?: unknown; v?: unknown }; switches?: unknown; waitDelete?: { contact?: unknown; kind?: unknown } };
+  let b: { name?: { uid?: unknown; name?: unknown }; approve?: { uid?: unknown; v?: unknown }; switches?: unknown; guide?: unknown; waitDelete?: { contact?: unknown; kind?: unknown } };
   try {
     b = await req.json();
   } catch {
@@ -64,6 +67,11 @@ export async function POST(req: Request) {
   if (b.waitDelete && typeof b.waitDelete.contact === 'string' && (b.waitDelete.kind === 'email' || b.waitDelete.kind === 'phone')) {
     await s.removeWaitlist({ contact: b.waitDelete.contact, kind: b.waitDelete.kind });
     return json({ ok: true });
+  }
+  if (b.guide && typeof b.guide === 'object') {
+    const g = cleanGuide({ ...(b.guide as object), updatedAt: new Date().toISOString() });
+    await s.setGuide(g);
+    return json({ ok: true, guide: g });
   }
   if (b.switches && typeof b.switches === 'object') {
     const next = cleanSwitches({ ...(await s.getSwitches()), ...(b.switches as object) });

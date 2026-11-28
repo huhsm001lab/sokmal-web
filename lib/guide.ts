@@ -14,6 +14,8 @@ export type MonoGuide = {
   /** 11-28: 해석(입시·전문)·내 이미지·연기 대화 관리자 기준. 있으면 그 기능 프롬프트 끝에 덧붙임 */
   exam: string;
   pro: string;
+  /** 전문 해석 '깊은 분석'(배우가 켰을 때만, 11-28) */
+  proDeep: string;
   image: string;
   talk: string;
   updatedAt: string | null;
@@ -21,7 +23,7 @@ export type MonoGuide = {
 export type GuideKey = 'exam' | 'pro' | 'image' | 'talk';
 
 export const GUIDE_MAX = 30_000;
-export const EMPTY_GUIDE: MonoGuide = { make: '', review: '', reviewOn: false, exam: '', pro: '', image: '', talk: '', updatedAt: null };
+export const EMPTY_GUIDE: MonoGuide = { make: '', review: '', reviewOn: false, exam: '', pro: '', proDeep: '', image: '', talk: '', updatedAt: null };
 
 export function cleanGuide(v: unknown): MonoGuide {
   const o = v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
@@ -32,6 +34,7 @@ export function cleanGuide(v: unknown): MonoGuide {
     reviewOn: o.reviewOn === true,
     exam: txt(o.exam),
     pro: txt(o.pro),
+    proDeep: txt(o.proDeep),
     image: txt(o.image),
     talk: txt(o.talk),
     updatedAt: typeof o.updatedAt === 'string' ? o.updatedAt : null,

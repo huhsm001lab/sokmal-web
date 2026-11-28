@@ -250,6 +250,17 @@ try {
     await page.screenshot({ path: OUT + '06-talk.png', fullPage: true });
   });
 
+  await step('전문 해석 깊은 분석: 처음엔 숨김 → 버튼 누르면 스위치', async () => {
+    await page.goto(BASE + '/#analysis');
+    await page.locator('#mode-top button[data-v="pro"]').click();
+    assert.equal(await page.locator('#a-deep').isVisible(), false, '처음엔 안 보여야 함');
+    await page.click('#a-deep-open');
+    await page.locator('#a-deep').waitFor({ state: 'visible' });
+    await page.check('#a-deep');
+    await page.click('#a-deep-open');
+    assert.equal(await page.locator('#a-deep').isChecked(), false, '닫으면 꺼져야 함');
+  });
+
   await step('화면 오류 없음', async () => {
     const real = errors.filter((e) => !/fonts\.g|Failed to load resource.*(429|400|401)/.test(e));
     assert.deepEqual(real, []);

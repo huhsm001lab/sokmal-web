@@ -620,6 +620,8 @@ $('#m-run').addEventListener('click',async()=>{
 /* ---------- ③ 해석 학습 (명세 v1.1) ---------- */
 const aOut=makeOut($('#a-out'));
 let aStart='mine';
+/* 11-28 깊은 분석: 처음엔 숨김, 「더 깊은 분석 고르기」를 누르면 스위치가 보임 */
+$('#a-deep-open').addEventListener('click',()=>{const b=$('#a-deep-box');b.hidden=!b.hidden;$('#a-deep-open').setAttribute('aria-expanded',String(!b.hidden));$('#a-deep-open').textContent=b.hidden?'더 깊은 분석 고르기':'깊은 분석 닫기';if(b.hidden)$('#a-deep').checked=false;});
 seg($('#a-start'),v=>{aStart=v;$('#a-mine-wrap').hidden=v!=='mine';});
 function paintCount(){const n=$('#a-text').value.length;const over=n>LIMITS.maxText;$('#a-count').textContent=n.toLocaleString('ko-KR')+'자'+(over?' · 한 번에 '+LIMITS.maxText.toLocaleString('ko-KR')+'자까지 받아요. 막·장면 단위로 나눠 넣어 주세요':'');$('#a-count').style.color=over?'#B4503B':'';}
 $('#a-text').addEventListener('input',paintCount);
@@ -678,7 +680,8 @@ $('#a-run').addEventListener('click',()=>{
   }else{
     const char=$('#a-char').value.trim();const mine=aStart==='mine'?$('#a-mine').value.trim():'';
     const ci={work,char};
-    spec={kind:'interpret',mode:'pro',input:{text,work,char,part,mine}}; /* 오늘 마지막 1번인지(last)는 서버가 판단 */
+    const deep=!!($('#a-deep')&&$('#a-deep').checked);
+    spec={kind:'interpret',mode:'pro',input:{text,work,char,part,mine,deep}}; /* 오늘 마지막 1번인지(last)는 서버가 판단 */
     meta={feature:'해석',mode:'pro',start:mine?'내 생각 먼저':'바로 분석',startChosen:aStart==='mine'?'내 생각 먼저':'바로 분석',textLen:text.length,part,chatCfg:proChatCfg(ci)};
   }
   aOut.meta=meta;

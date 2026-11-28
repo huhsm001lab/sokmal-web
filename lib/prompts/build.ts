@@ -38,7 +38,7 @@ export type Mode = 'exam' | 'pro';
 export type InterpretBase = {
   kind: 'interpret';
   mode: Mode;
-  input: { text: string; work: string; part: boolean; mine: string; char: string };
+  input: { text: string; work: string; part: boolean; mine: string; char: string; deep?: boolean };
   last: boolean;
 };
 export type MonoCtx = {
@@ -102,6 +102,8 @@ function interpretInput(v: unknown) {
     part: bool(o.part),
     mine: str(o.mine, 3000, '내 생각'),
     char: str(o.char, 200, '인물'),
+    /** 전문 해석 '깊은 분석' (배우가 켰을 때만) */
+    deep: bool(o.deep),
   };
 }
 function monoCtx(v: unknown): MonoCtx {
@@ -192,7 +194,8 @@ export function basePrompt(b: Base, sw: PromptSwitches = DEFAULT_SWITCHES, guide
         b.mode === 'exam'
           ? P.examPromptOf({ text: b.input.text, work: b.input.work, part: b.input.part, mine: b.input.mine })
           : P.proPromptOf({ ...b.input, last: b.last });
-      return appendGuide(appendNote(raw, note), b.mode === 'exam' ? guide.exam : guide.pro);
+      const extra = b.mode === 'exam' ? guide.exam : b.input.deep && guide.proDeep ? guide.proDeep : guide.pro;
+      return appendGuide(appendNote(raw, note), extra);
     }
     case 'mono':
       return applyMakeGuide(applyMonoSwitches(P.monoPrompt(b.c, b.qa, b.mMode, b.hist), sw), sw.monoRules ? guide.make : '', b.c.kw.mtype);
@@ -231,7 +234,7 @@ export function buildJob(body: unknown, left: LeftFn, sw: PromptSwitches = DEFAU
       const note = noteOf(b);
       return {
         ...(note ? { note: note.title } : {}),
-        feature: '해석·' + mode + (note ? ' [작품 노트]' : ''),
+        feature: '해석·' + mode + (mode === 'pro' && b.input.deep ? ' [깊게]' : '') + (note ? ' [작품 노트]' : ''),
         tier: 'main',
         messages: [user(basePrompt(b, sw, guide, note))],
         counter: { key: mode, kind: 'run', limit: LIMITS.daily[mode] },

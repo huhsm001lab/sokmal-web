@@ -288,3 +288,5 @@ html.login:not(.gate-ready) #gate-wait{display:block}
 .gate-terms summary{cursor:pointer;color:var(--navy)}
 .gate-terms p{margin:6px 0 0;line-height:1.7}
 .gate-step .gate-go{margin-top:16px}
+.deep-opt{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}
+.deep-opt .linkbtn{font-size:14px}

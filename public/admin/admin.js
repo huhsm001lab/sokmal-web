@@ -312,7 +312,7 @@
             m.access !== 'blocked' ? accBtn(m, 'blocked', '막기') : null))))))) : h('div', { class: 'adm-leg' }, '아직 가입한 사람이 없어요.'));
 
     /* 기준 (11-27 독백, 11-28 해석·내 이미지·연기 대화): 한글 그대로 넣고 저장 → 다음 호출부터 적용 */
-    const g = Object.assign({ make: '', review: '', reviewOn: false, exam: '', pro: '', image: '', talk: '', updatedAt: null }, d.guide || {});
+    const g = Object.assign({ make: '', review: '', reviewOn: false, exam: '', pro: '', proDeep: '', image: '', talk: '', updatedAt: null }, d.guide || {});
     const ta = (id, v, ph) => { const t = h('textarea', { class: 'guide-ta', id, placeholder: ph, maxlength: '30000' }); t.value = v || ''; return t; };
     const cnt = (t) => { const c = h('span', { class: 'adm-leg' }); const f = () => { c.textContent = t.value.length.toLocaleString('ko-KR') + ' / 30,000자'; }; t.addEventListener('input', f); f(); return c; };
     const T = {
@@ -321,6 +321,7 @@
       exam: ta('guide-exam', g.exam, '입시 해석에 더할 기준. 비워 두면 기본 지침만 써요.'),
       pro: ta('guide-pro', g.pro, '전문 해석(주고받기)에 더할 기준. 비워 두면 기본 지침만 써요.'),
       image: ta('guide-image', g.image, '내 이미지에 더할 기준. 비워 두면 기본 지침만 써요.'),
+      proDeep: ta('guide-proDeep', g.proDeep, '배우가 「깊은 분석으로 읽기」를 켰을 때만 쓰는 기준. 비워 두면 위 전문 기준을 그대로 써요.'),
       talk: ta('guide-talk', g.talk, '연기 대화의 기준. 비워 두면 기본 원칙(원리는 분명히, 선택은 여러 갈래, 연기 방식은 정해 주지 않음)만 써요.'),
     };
     const revOn = h('input', { type: 'checkbox', id: 'guide-review-on', role: 'switch' }); revOn.checked = !!g.reviewOn;
@@ -338,7 +339,7 @@
       ['mono', '독백', [...fld('창작 독백 제작 기준', 'make'), ...fld('평가 및 검수 기준', 'review'),
         h('label', { class: 'sw-row', for: 'guide-review-on' }, revOn, h('span', { class: 'sw-txt' }, h('b', {}, '검수 단계 켜기'), h('span', {}, '1차로 쓴 독백을 검수 기준으로 평가·수정해 최종본만 배우에게 보내요. AI를 두 번 불러 시간·비용이 약 두 배예요.')))]],
       ['exam', '해석 입시', fld('입시 해석 기준 (기본 지침 끝에 덧붙음)', 'exam')],
-      ['pro', '해석 전문', fld('전문 해석 기준 (기본 지침 끝에 덧붙음)', 'pro')],
+      ['pro', '해석 전문', [...fld('전문 해석 기준 (기본 지침 끝에 덧붙음)', 'pro'), ...fld('깊은 분석 기준 (배우가 켰을 때만, 위 기준 대신 씀)', 'proDeep')]],
       ['image', '내 이미지', fld('내 이미지 기준 (기본 지침 끝에 덧붙음)', 'image')],
       ['talk', '연기 대화', fld('연기 대화 기준', 'talk')],
     ];

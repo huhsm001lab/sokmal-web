@@ -84,22 +84,10 @@ try {
   await go('voice');
   await a.locator('button', { hasText: '랜딩에 쓸 후기로 표시' }).click();
   await a.locator('.tag.ok', { hasText: '랜딩 후보' }).waitFor({ timeout: 5000 });
-  // 독백 지침 스위치: 끄면 새로고침 뒤에도 꺼져 있음
+  // 독백 지침 (11-28): 기본 지침 없음 안내, 제작·검수 기준 저장 → 독백 1번 → 배우는 최종본을 받고, 관리자에 검수 기록
   await go('rules');
-  assert.match(await a.locator('.def-box pre').textContent(), /말하려는 것 하나/, '기본 쓰는 기준 7줄이 보여야 함');
-  assert.equal(await a.isChecked('#sw-monoRules'), true, '지침은 처음에 켜져 있어야 함');
-  await a.click('#sw-monoRules');
-  await a.waitForFunction(() => /꺼짐/.test(document.querySelector('label[for="sw-monoRules"] .sw-state')?.textContent || ''), null, { timeout: 5000 });
-  await a.reload();
-  await a.locator('#sw-monoRules').waitFor({ timeout: 8000 });
-  assert.equal(await a.isChecked('#sw-monoRules'), false, '끈 지침이 새로고침 뒤에도 꺼져 있어야 함');
-  assert.equal(await a.isChecked('#sw-monoExamples'), true);
-  // 지침 다시 켜고, 제작·검수 기준 저장 → 독백 1번 → 배우는 최종본을 받고, 관리자에 검수 기록
-  await a.click('#sw-monoRules');
-  await a.waitForFunction(() => /켜짐/.test(document.querySelector('label[for="sw-monoRules"] .sw-state')?.textContent || ''), null, { timeout: 5000 });
-  await a.click('.def-box summary');
-  await a.click('#guide-load-default');
-  assert.match(await a.locator('#guide-make').inputValue(), /^\[쓰는 기준/, '기본 7줄을 제작 기준 칸으로 불러와야 함');
+  assert.match(await a.locator('.adm-sec[data-k="rules"]').textContent(), /지침 없음/, '독백 지침이 없다고 보여야 함');
+  assert.equal(await a.locator('#sw-monoRules').count(), 0, '지침 스위치는 없어야 함');
   await a.fill('#guide-make', '01. 대사의 자연스러움\n* 읽기 좋은 글보다 말하기 좋은 대사');
   await a.fill('#guide-review', '01. 창작 독백 평가표 (100점 만점)');
   await a.check('#guide-review-on');

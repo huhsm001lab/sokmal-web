@@ -263,28 +263,10 @@
     });
 
     /* 독백 지침 스위치 (11-27): 켜고 끄며 비교. 바로 다음 독백부터 모든 테스터에게 적용 */
-    const sw = Object.assign({ monoRules: true, monoExamples: true }, d.switches || {});
-    const swRow = (key, title, desc) => {
-      const box = h('input', { type: 'checkbox', id: 'sw-' + key, role: 'switch' });
-      box.checked = !!sw[key];
-      const state = h('b', { class: 'sw-state' }, sw[key] ? '켜짐' : '꺼짐');
-      box.addEventListener('change', async () => {
-        box.disabled = true;
-        const r = await api('POST', { switches: { [key]: box.checked } }).catch(() => ({ status: 0 }));
-        box.disabled = false;
-        if (r.status === 200 && r.j.switches) {
-          Object.assign(sw, r.j.switches); d.switches = sw;
-          state.textContent = sw[key] ? '켜짐' : '꺼짐';
-          toast(title + (sw[key] ? ' 켰어요' : ' 껐어요') + '. 다음 독백부터 적용돼요');
-        } else { box.checked = !box.checked; toast('바꾸지 못했어요. 다시 눌러 주세요'); }
-      });
-      return h('label', { class: 'sw-row', for: 'sw-' + key }, box, h('span', { class: 'sw-txt' }, h('b', {}, title), h('span', {}, desc)), state);
-    };
-    const swCard = h('div', { class: 'card sw-card' }, h('h3', {}, '독백 지침 켜고 끄기'),
-      h('p', { class: 'adm-leg' }, '끄면 바로 다음 독백부터 모든 테스터에게 적용돼요. AI 호출 기록에 "(지침 끔)"처럼 표시돼서 나중에 비교할 수 있어요.'),
-      swRow('monoRules', '쓰는 기준', (d.guide && d.guide.make ? '지금: 관리자가 넣은 「제작 기준」 (' + d.guide.make.length.toLocaleString('ko-KR') + '자)' : '지금: 기본 7줄') + ' · 내용은 아래 「기준 → 독백」에서 보고 고쳐요'),
-      swRow('monoExamples', '송무 예시 독백 5편', '말의 감각을 참고하라고 함께 보내는 예시'),
-      h('p', { class: 'adm-leg' }, '둘 다 꺼도 배우의 재료(이야기·답)와 결과 형식은 그대로 보내요.'));
+    const g0 = d.guide || {};
+    const swCard = h('div', { class: 'card' }, h('h3', {}, '독백 지침'),
+      h('p', { class: 'adm-leg' }, '11-28부터 독백에는 기본 지침(7줄)·송무 예시 5편·SOKMAL 약속 줄을 보내지 않아요. 배우의 재료(이야기·답)와 결과 형식만 보내요.'),
+      h('p', { class: 'adm-leg', style: 'margin:0' }, '새 지침을 쓰고 싶으면 아래 「독백」 탭의 제작 기준 칸에 넣고 저장해요. 넣은 글만 그대로 쓰여요. 지금: ' + (g0.make ? '제작 기준 있음 (' + g0.make.length.toLocaleString('ko-KR') + '자)' : '지침 없음') + ' · 검수: ' + (g0.reviewOn && g0.review ? '켜짐' : '꺼짐')));
 
     /* 가입·승인 (11-28): 로그인한 사람의 프로필과 승인 */
     const members = d.members || [];
@@ -316,7 +298,7 @@
     const ta = (id, v, ph) => { const t = h('textarea', { class: 'guide-ta', id, placeholder: ph, maxlength: '30000' }); t.value = v || ''; return t; };
     const cnt = (t) => { const c = h('span', { class: 'adm-leg' }); const f = () => { c.textContent = t.value.length.toLocaleString('ko-KR') + ' / 30,000자'; }; t.addEventListener('input', f); f(); return c; };
     const T = {
-      make: ta('guide-make', g.make, '여기에 「창작 독백 제작 기준」을 붙여 넣어요. 비워 두면 기본 7줄로 써요.'),
+      make: ta('guide-make', g.make, '독백 지침을 쓰고 싶을 때만 넣어요. 비워 두면 지침 없이 재료와 결과 형식만 보내요.'),
       review: ta('guide-review', g.review, '여기에 「평가 및 검수 기준」을 붙여 넣어요. 비워 두면 검수하지 않아요.'),
       exam: ta('guide-exam', g.exam, '입시 해석에 더할 기준. 비워 두면 기본 지침만 써요.'),
       pro: ta('guide-pro', g.pro, '전문 해석(주고받기)에 더할 기준. 비워 두면 기본 지침만 써요.'),
@@ -335,21 +317,9 @@
       if (r.status === 200 && r.j.guide) { d.guide = r.j.guide; toast('기준을 저장했어요. 다음 호출부터 적용돼요'); render(d); } else toast('저장하지 못했어요. 다시 눌러 주세요');
     });
     const fld = (label, k) => [h('label', { class: 'f', for: T[k].id }, label), T[k], cnt(T[k])];
-    const dm = (d.defaults && d.defaults.monoRules) || null;
-    const loadDef = h('button', { type: 'button', class: 'btn small', id: 'guide-load-default' }, '기본 7줄을 제작 기준 칸으로 불러오기');
-    loadDef.addEventListener('click', () => {
-      if (T.make.value.trim() && !confirm('제작 기준 칸에 이미 글이 있어요. 기본 7줄로 바꿀까요? (저장을 눌러야 적용돼요)')) return;
-      T.make.value = dm.exam + '\n\n(매체·오디션 독백일 때 2번) ' + dm.media2.replace(/^2\. /, '');
-      T.make.dispatchEvent(new Event('input')); T.make.focus();
-      toast('불러왔어요. 고친 뒤 「기준 저장」을 눌러 주세요');
-    });
-    const defBox = !dm ? null : h('details', { class: 'def-box' },
-      h('summary', {}, '기본 쓰는 기준 7줄 보기 ' , h('span', { class: 'adm-leg' }, g.make ? '(지금은 아래 제작 기준을 써요)' : '(지금 이걸 써요)')),
-      h('p', { class: 'adm-leg' }, '제작 기준 칸이 비어 있으면 이 7줄을 써요. 기본 7줄은 여기서 바로 고칠 수 없고, 불러와서 고친 뒤 저장하면 그 글이 대신 쓰여요. 제작 기준 칸을 비우고 저장하면 다시 기본 7줄로 돌아가요.'),
-      h('pre', { class: 'guide-pre' }, dm.exam + '\n\n[매체·오디션 독백일 때 2번]\n' + dm.media2),
-      h('div', { class: 'out-acts' }, loadDef));
+
     const PANES = [
-      ['mono', '독백', [defBox, ...fld('창작 독백 제작 기준', 'make'), ...fld('평가 및 검수 기준', 'review'),
+      ['mono', '독백', [...fld('창작 독백 제작 기준', 'make'), ...fld('평가 및 검수 기준', 'review'),
         h('label', { class: 'sw-row', for: 'guide-review-on' }, revOn, h('span', { class: 'sw-txt' }, h('b', {}, '검수 단계 켜기'), h('span', {}, '1차로 쓴 독백을 검수 기준으로 평가·수정해 최종본만 배우에게 보내요. AI를 두 번 불러 시간·비용이 약 두 배예요.')))]],
       ['exam', '해석 입시', fld('입시 해석 기준 (기본 지침 끝에 덧붙음)', 'exam')],
       ['pro', '해석 전문', [...fld('전문 해석 기준 (기본 지침 끝에 덧붙음)', 'pro'), ...fld('깊은 분석 기준 (배우가 켰을 때만, 위 기준 대신 씀)', 'proDeep')]],
@@ -365,7 +335,7 @@
     }));
     PANES.forEach(([k, , kids]) => { panes[k] = h('div', { class: 'guide-pane', 'data-k': k, hidden: window.__gTab !== k }, kids); });
     const gCard = h('div', { class: 'card' }, h('h3', {}, '기준 글 (독백 · 해석 · 내 이미지 · 연기 대화)'),
-      h('p', { class: 'adm-leg' }, '한글 그대로 붙여 넣고 저장하면 바로 다음 호출부터 적용돼요. 다시 배포할 필요 없어요. • 표시는 기준이 들어 있는 탭이에요. 위에서 「쓰는 기준」을 끄면 독백 제작 기준도 함께 꺼져요.' + (g.updatedAt ? ' 마지막 저장: ' + timeOf(g.updatedAt) : '')),
+      h('p', { class: 'adm-leg' }, '한글 그대로 붙여 넣고 저장하면 바로 다음 호출부터 적용돼요. 다시 배포할 필요 없어요. • 표시는 기준이 들어 있는 탭이에요. ' + (g.updatedAt ? ' 마지막 저장: ' + timeOf(g.updatedAt) : '')),
       tabs, ...Object.values(panes),
       h('div', { class: 'out-acts' }, saveG));
 
@@ -447,8 +417,7 @@
       h('div', { class: 'card' }, h('h3', {}, '지금 설정'),
         h('dl', { class: 'kv' },
           h('dt', {}, '로그인'), h('dd', {}, !lg.mode ? '초대 코드' : lg.mode === 'fake' ? '시험용 가짜 로그인' : '이메일 코드 로그인' + (lg.approval ? ' · 승인제' : '')),
-          h('dt', {}, '독백 쓰는 기준'), h('dd', {}, !sw.monoRules ? '꺼짐 (일반 AI처럼)' : g.make ? '관리자 제작 기준' : '기본 7줄'),
-          h('dt', {}, '송무 예시 5편'), h('dd', {}, sw.monoExamples ? '켜짐' : '꺼짐'),
+          h('dt', {}, '독백 지침'), h('dd', {}, g.make ? '관리자 제작 기준' : '없음 (재료와 형식만)'),
           h('dt', {}, '독백 검수'), h('dd', {}, g.reviewOn && g.review ? '켜짐 (AI 두 번)' : '꺼짐'),
           h('dt', {}, '작품 노트'), h('dd', {}, wNotes.filter((n) => n.status === '검수됨').length + '편 검수됨 / ' + wNotes.length + '편'),
           h('dt', {}, '저장소'), h('dd', {}, { redis: 'Upstash Redis', supabase: 'Supabase', file: '내 컴퓨터 파일', memory: '서버 메모리(꺼지면 사라짐)' }[m.storage] || m.storage),

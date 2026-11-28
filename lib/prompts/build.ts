@@ -3,7 +3,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import * as P from './sokmal-prompts.js';
 import { LIMITS, type CounterKey } from '../limits';
-import { applyMonoSwitches, DEFAULT_SWITCHES, switchTag, type PromptSwitches } from './switches';
+import { applyMonoSwitches, DEFAULT_SWITCHES, type PromptSwitches } from './switches';
 import { appendGuide, applyMakeGuide, EMPTY_GUIDE, linePrompt, talkPrompt, variantsWrap, type MonoGuide } from '../guide';
 import { appendNote, matchNote, type WorkNote } from '../notes';
 
@@ -198,7 +198,8 @@ export function basePrompt(b: Base, sw: PromptSwitches = DEFAULT_SWITCHES, guide
       return appendGuide(appendNote(raw, note), extra);
     }
     case 'mono':
-      return applyMakeGuide(applyMonoSwitches(P.monoPrompt(b.c, b.qa, b.mMode, b.hist), sw), sw.monoRules ? guide.make : '', b.c.kw.mtype);
+      // 11-28 송무: 독백 지침 전부 뺌 (기본 7줄·송무 예시 5편·SOKMAL 약속 줄). 재료·결과 형식만 + 관리자 제작 기준(넣었을 때만)
+      return applyMakeGuide(bareMono(P.monoPrompt(b.c, b.qa, b.mMode, b.hist)), guide.make, b.c.kw.mtype);
     case 'image':
       return appendGuide(P.imagePromptOf(b.input), guide.image);
     case 'design':
@@ -220,7 +221,8 @@ const MAX_CHAT_TURNS = 40;
 /** 요청 하나를 서버가 할 일로 바꾼다 */
 export function buildJob(body: unknown, left: LeftFn, sw: PromptSwitches = DEFAULT_SWITCHES, guide: MonoGuide = EMPTY_GUIDE, notes: WorkNote[] = []): Job {
   const noteOf = (b: InterpretBase) => matchNote(notes, b.input.work, b.input.text);
-  const tag = switchTag(sw) + (sw.monoRules && guide.make ? ' [제작 기준]' : '');
+  void sw; // 지침 스위치는 11-28부터 독백에 쓰지 않음 (빼낼 기본 지침이 없음)
+  const tag = guide.make ? ' [제작 기준]' : ' [지침 없음]';
   if (!isObj(body)) throw new BadInput('bad_request', '요청');
   const user = (content: string): Anthropic.Beta.BetaMessageParam => ({ role: 'user', content });
 
@@ -341,7 +343,7 @@ export function buildJob(body: unknown, left: LeftFn, sw: PromptSwitches = DEFAU
         counter = { key: base.mode, kind: 'follow', limit: LIMITS.daily[base.mode] };
         wrap = base.mode === 'exam' ? (x) => P.examFollowWrap(x) : (x, info) => P.proFollowWrap(x, info);
       } else if (base.kind === 'mono' && base.c.pro) {
-        wrap = (x) => P.monoChatWrap(x);
+        wrap = (x) => P.monoChatWrap(x).replace(/ 처음 받은 \[규칙\]을 그대로 지킵니다\([^)]*\)\./, ''); // 11-28 독백 지침 뺌
       } else {
         throw new BadInput('bad_request', '이 결과는 이어서 묻기를 쓰지 않음');
       }
@@ -373,15 +375,7 @@ export const usingExamplePrompts = P.IS_EXAMPLE === true;
 
 export const isMetaReply = (t: string) => /^\s*\[(확인|모름)\]/.test(String(t));
 
-/** 관리자 화면에서 보여 줄 기본 '쓰는 기준' (예시·형식 줄은 뺌). 2번은 입시/매체가 다름 (11-28) */
-export function defaultMonoRules(): { exam: string; media2: string } {
-  const cut = (t: string) => {
-    const e = t.indexOf('\n아래는 사람(SOKMAL');
-    const f = t.indexOf('형식: 맨 첫 줄에');
-    return t.slice(0, e >= 0 ? e : f >= 0 ? f : t.length).trim();
-  };
-  const exam = cut(P.monoRules('입시 독백'));
-  const media = cut(P.monoRules('매체·오디션 독백'));
-  const media2 = (media.split('\n').find((l) => l.startsWith('2. ')) || '').trim();
-  return { exam, media2 };
+/** 독백 원문 프롬프트에서 기본 '쓰는 기준'·예시를 빼고, [설계] 줄의 기승전결 틀도 뺀다 (11-28) */
+export function bareMono(text: string): string {
+  return applyMonoSwitches(text, { monoRules: false, monoExamples: false }).replace('[설계] 한 줄(말하려는 것 ｜ 기 ｜ 승 ｜ 전 ｜ 결, 짧게. 화면에는 보이지 않습니다)', '[설계] 한 줄(짧게. 화면에는 보이지 않습니다)');
 }

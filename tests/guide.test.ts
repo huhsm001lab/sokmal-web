@@ -9,25 +9,18 @@ const FORMAT = '형식: 맨 첫 줄에 [설계] 한 줄. 그다음 ## 독백.';
 const HEAD = '당신은 극작가입니다.\n\n[배우의 이야기]\n친구 이야기\n\n';
 const full = HEAD + RULES + EX + '\n' + FORMAT;
 
-describe('제작 기준 바꿔 끼우기', () => {
-  it('7줄 자리에 제작 기준 + SOKMAL 약속, 예시·형식은 그대로', () => {
-    const t = applyMakeGuide(full, '01. 대사의 자연스러움\n* 말하기 좋은 대사', '입시 독백');
+describe('제작 기준 넣기 (11-28: 기본 지침·약속 줄 없음)', () => {
+  it('예전 기본 기준·예시 자리는 통째로 제작 기준으로, 약속 줄은 붙지 않음', () => {
+    const t = applyMakeGuide(full, '01. 대사의 자연스러움', '입시 독백');
     expect(t).not.toContain('규칙 하나');
-    expect(t).toContain('01. 대사의 자연스러움');
-    expect(t).toContain('[SOKMAL에서 꼭 지킬 것]');
-    expect(t).toContain('입시 독백입니다');
-    expect(t).toContain('흔한 이별 소품');
-    expect(t).toContain('<사람이 쓴 예시 1>');
-    expect(t).toContain(FORMAT);
-    expect(t.startsWith(HEAD)).toBe(true);
+    expect(t).not.toContain('사람이 쓴 예시');
+    expect(t).not.toContain('SOKMAL에서 꼭 지킬 것');
+    expect(t).toBe(HEAD + '[쓰는 기준 — 창작 독백 제작 기준]\n01. 대사의 자연스러움\n\n' + FORMAT);
   });
-  it('예시가 꺼져 있어도 형식은 남음', () => {
-    const noEx = HEAD + RULES + '\n' + FORMAT;
-    const t = applyMakeGuide(noEx, '기준', '매체·오디션 독백');
-    expect(t).toContain('매체·오디션 독백입니다');
-    expect(t).toContain(FORMAT);
+  it('기본 기준이 없는 글이면 형식 줄 바로 앞에', () => {
+    expect(applyMakeGuide(HEAD + FORMAT, '기준', '매체·오디션 독백')).toBe(HEAD + '[쓰는 기준 — 창작 독백 제작 기준]\n기준\n\n' + FORMAT);
   });
-  it('기준이 비었거나 표시 문구가 없으면 그대로', () => {
+  it('기준이 비었거나 형식 줄이 없으면 그대로', () => {
     expect(applyMakeGuide(full, '  ', '입시 독백')).toBe(full);
     expect(applyMakeGuide('다른 프롬프트', '기준', '입시 독백')).toBe('다른 프롬프트');
   });
@@ -86,18 +79,18 @@ describe('독백 갈래 (11-28)', () => {
     const g = { ...EMPTY_GUIDE, review: '검수', reviewOn: true };
     const sw = { monoRules: true, monoExamples: true };
     const j = buildJob({ kind: 'mono', c, qa: null, mMode: 'new', hist: [], variants: 3 }, () => 5, sw, g);
-    expect(j.feature).toBe('독백·갈래');
+    expect(j.feature).toBe('독백·갈래 [지침 없음]');
     expect(j.review).toBeUndefined();
     expect(j.counter).toEqual({ key: 'mono', kind: 'run', limit: 10 });
     expect(String(j.messages[0].content)).toContain('[갈래 보기]');
     const r = buildJob({ kind: 'mono', c, qa: null, mMode: 'refine', hist: [], variants: 3 }, () => 5, sw, g);
-    expect(r.feature).toBe('독백·refine');
+    expect(r.feature).toBe('독백·refine [지침 없음]');
     expect(r.review).toBe('검수');
   });
 });
 
 describe('내 말로 고치기 (11-28)', () => {
-  it('한 줄 다른 말: 가벼운 모델, line 횟수 30, 연기 지시 금지', async () => {
+  it('한 줄 다른 말: 가벼운 모델, line 횟수 30, 지침 없음(11-28)', async () => {
     const { buildJob } = await import('@/lib/prompts/build');
     const { parseLineOptions } = await import('@/lib/guide');
     const j = buildJob({ kind: 'mono_line', text: '왔네.\n물 마시러 나온 거야.', line: '물 마시러 나온 거야.' }, () => 5);
@@ -105,7 +98,7 @@ describe('내 말로 고치기 (11-28)', () => {
     expect(j.counter).toEqual({ key: 'line', kind: 'run', limit: 30 });
     const t = String(j.messages[0].content);
     expect(t).toContain('[고칠 줄]\n물 마시러 나온 거야.');
-    expect(t).toContain('연기 방식');
+    expect(t).not.toContain('연기 방식');
     expect(() => buildJob({ kind: 'mono_line', text: '', line: 'x' }, () => 5)).toThrow();
     expect(parseLineOptions('- 하나\n• "둘"\n그냥 글\n- 셋\n- 넷')).toEqual(['하나', '둘', '셋']);
   });

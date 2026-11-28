@@ -42,33 +42,17 @@ export function cleanGuide(v: unknown): MonoGuide {
 }
 
 const RULES_START = '[쓰는 기준 — ';
-const EX_START = '\n아래는 사람(SOKMAL 공동 창업자';
 const FORMAT = '형식: 맨 첫 줄에';
 
-/** 제작 기준만으로는 빠지는 SOKMAL의 약속 (원칙: 배우의 경험이 재료, 소품 강요 금지, 연기 방식 지시 금지, 상대 줄 표시) */
-function sokmalMust(mtype: string): string {
-  return [
-    '[SOKMAL에서 꼭 지킬 것]',
-    mtype === '매체·오디션 독백'
-      ? '- 매체·오디션 독백입니다. 일상 대화 형식이어도 됩니다.'
-      : '- 입시 독백입니다. 짧아도 시작 → 쌓임 → 전환 → 상대에게 하는 요구나 결정이 보여야 합니다.',
-    '- 배우가 직접 말한 경험과 답을 가장 중요한 재료로 씁니다. 지어낸 사연으로 덮지 않습니다.',
-    '- 배우가 말하지 않은 소품은 넣지 않고, 흔한 이별 소품(칫솔·우산·반지·사진·편지)과 상투적인 장면은 쓰지 않습니다.',
-    '- 호흡·강약·표정·속도 같은 연기 방식을 지시하지 않습니다.',
-    '- 상대의 반응은 인물이 되받는 말 속에 드러내고, [상대]로 시작하는 줄은 꼭 필요할 때만 한두 곳 씁니다.',
-  ].join('\n');
-}
-
-/** 독백 프롬프트의 기본 '쓰는 기준'을 제작 기준으로 바꾼다. 표시 문구가 없으면(예시 프롬프트 등) 그대로 */
-export function applyMakeGuide(text: string, make: string, mtype: string): string {
+/** 독백 프롬프트에 관리자 '제작 기준'을 넣는다 (형식 줄 바로 앞). 11-28 송무 결정으로 기본 7줄·예시·SOKMAL 약속 줄은 모두 뺐음.
+ *  예전 기본 기준이 남아 있는 글이면 그 자리를 통째로 바꾼다. 형식 줄이 없으면 그대로 */
+export function applyMakeGuide(text: string, make: string, _mtype?: string): string {
   if (!make.trim()) return text;
+  const f = text.indexOf(FORMAT);
+  if (f < 0) return text;
   const r0 = text.indexOf(RULES_START);
-  const f = r0 >= 0 ? text.indexOf(FORMAT, r0) : -1;
-  if (r0 < 0 || f < 0) return text;
-  const e0 = text.indexOf(EX_START, r0);
-  const end = e0 >= 0 && e0 < f ? e0 : f;
-  const block = `[쓰는 기준 — 창작 독백 제작 기준 (SOKMAL)]\n${make.trim()}\n\n${sokmalMust(mtype)}\n`;
-  return text.slice(0, r0) + block + (end === e0 ? text.slice(e0) : '\n' + text.slice(f));
+  const start = r0 >= 0 && r0 < f ? r0 : f;
+  return text.slice(0, start) + `[쓰는 기준 — 창작 독백 제작 기준]\n${make.trim()}\n\n` + text.slice(f);
 }
 
 export const FINAL_MARK = '===최종 독백===';
@@ -125,7 +109,6 @@ export function variantsWrap(n: number): string {
 - 인물·상대·상황·배우의 경험과 답은 ${n}개 모두 같습니다. 인물이 상대를 움직이려는 방법(말을 꺼내는 방식, 상대를 대하는 태도, 숨기는 정도)만 서로 다르게 합니다.
 - 갈래마다 요청한 길이의 절반쯤으로 짧게 씁니다.
 - 갈래 이름은 그 갈래의 말하는 방법을 4~10자로만 적습니다(예: 먼저 따지며 / 끝까지 감추며 / 슬쩍 떠보며). 감정 상태나 연기 방법(호흡·표정·속도)을 적지 않습니다.
-- 위의 쓰는 기준은 갈래마다 모두 지킵니다.
 
 [이번 출력 형식 — 위의 출력 형식 대신 이것을 씁니다]
 맨 첫 줄에 [설계] 한 줄(화면에는 보이지 않습니다).
@@ -154,8 +137,6 @@ export function linePrompt(monologue: string, line: string): string {
   return `당신은 배우의 독백을 같이 다듬는 극작가입니다. 아래 독백에서 ${LINE_TAG} 하나만 다른 말로 3가지 씁니다.
 - 같은 인물, 같은 상대, 같은 순간입니다. 앞뒤 줄과 자연스럽게 이어져야 합니다.
 - 그 줄이 상대에게 하려던 일은 그대로 두고 말만 바꿉니다. 세 가지는 서로 다른 말맛으로 씁니다.
-- 실제 사람이 하는 입말로 씁니다. 설명하지 않고, 상대가 이미 아는 일을 풀지 않습니다.
-- 연기 방식(호흡·강약·표정·속도)이나 지문은 적지 않습니다.
 - 형식: "- "로 시작하는 3줄만 씁니다. 다른 말은 쓰지 않습니다.
 
 [독백]

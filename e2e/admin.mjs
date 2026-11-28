@@ -109,13 +109,25 @@ try {
   assert.equal(await a.locator("#guide-exam").inputValue(), "입시 해석은 인물별 주장과 사실을 꼭 나눈다", "해석 입시 기준이 저장돼야 함");
   assert.match(await a.locator(".guide-tabs button", { hasText: "해석 입시" }).textContent(), /•/);
   assert.match(await a.locator('#adm-body').textContent(), /독백·new \[제작 기준\]·검수/, 'AI 호출 기록에 검수 호출이 보여야 함');
+  // 검수된 작품 노트: 관리자에서 추가 → 테스터가 작품명만 넣고 해석 → "검수된 작품 노트 기준" 표시
+  await a.click('#note-new');
+  await a.fill('#note-title', '빈 집');
+  await a.fill('#note-summary', '어머니와 딸이 오래 산 집을 정리하는 하루.');
+  await a.selectOption('#note-status', '검수됨');
+  await a.locator('button', { hasText: '노트 저장' }).click();
+  await a.locator('h3', { hasText: '검수된 작품 노트 1편' }).waitFor({ timeout: 5000 });
+  await p.goto(BASE + '/#analysis');
+  await p.fill('#a-text', '빈 집');
+  await p.click('#a-run');
+  await p.locator('#a-out .note-badge', { hasText: '검수된 작품 노트 기준' }).waitFor({ timeout: 15000 });
+  assert.ok(!(await p.locator('#a-out').textContent()).includes('작품명만으로 정리했어요'), '노트가 있으면 확인 필요 경고 대신 노트 안내');
   await a.screenshot({ path: OUT + '07-admin.png', fullPage: true });
   // 폰 화면에서 가로로 넘치지 않는지 (표는 안에서 밀림)
   await a.setViewportSize({ width: 390, height: 844 });
   const w = await a.evaluate(() => document.documentElement.scrollWidth);
   assert.ok(w <= 392, '폰 화면에서 페이지가 가로로 넘침: ' + w);
   assert.deepEqual(errors, []);
-  console.log('관리자 페이지 확인 통과 (서버 차단·틀린 코드·테스터 코드·AI 호출·의견·후기·이름 메모·랜딩 표시·지침 스위치·제작·검수 기준·폰 너비)');
+  console.log('관리자 페이지 확인 통과 (서버 차단·틀린 코드·테스터 코드·AI 호출·의견·후기·이름 메모·랜딩 표시·지침 스위치·제작·검수 기준·작품 노트·폰 너비)');
 } catch (e) {
   console.log('실패:', e.message);
   code = 1;

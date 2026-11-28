@@ -44,8 +44,12 @@ export async function POST(req: Request) {
 
   let job: Job;
   try {
-    const [sw, guide] = await Promise.all([store.getSwitches().catch(() => DEFAULT_SWITCHES), store.getGuide().catch(() => EMPTY_GUIDE)]);
-    job = buildJob(body, left, sw, guide);
+    const [sw, guide, notes] = await Promise.all([
+      store.getSwitches().catch(() => DEFAULT_SWITCHES),
+      store.getGuide().catch(() => EMPTY_GUIDE),
+      store.notes().catch(() => []),
+    ]);
+    job = buildJob(body, left, sw, guide, notes);
   } catch (e) {
     if (e instanceof BadInput) return json({ error: e.code }, e.code === 'prompt_too_large' ? 413 : 400);
     throw e;
@@ -163,7 +167,7 @@ export async function POST(req: Request) {
           const meta = isMetaReply(r.text);
           if (meta && job.refundMeta) await refund();
           await log(meta ? 'meta' : 'ok', r, r.model);
-          send({ done: true, text: r.text, truncated: r.stop === 'length', base: job.base, usage: await store.usage(uid, day) });
+          send({ done: true, text: r.text, truncated: r.stop === 'length', base: job.base, ...(job.note ? { note: job.note } : {}), usage: await store.usage(uid, day) });
         }
       } catch (e) {
         const code = ctl.signal.aborted ? 'cancelled' : aiErrorCode(e);

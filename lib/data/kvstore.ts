@@ -13,6 +13,8 @@
 //   waitlist          해시  연락처 열쇠 → 대기 명단 JSON (소개 페이지에서 남김)
 //   admin:guide       값    독백 제작·검수 기준 JSON (관리자가 넣음)
 //   reviews           목록  독백 검수 기록(JSON, 최신이 앞) 300건
+//   notes             해시  id → 검수된 작품 노트 JSON
+import type { WorkNote } from '../notes';
 import { cleanGuide, type MonoGuide } from '../guide';
 import { hideKeys } from '../config';
 import { WAIT_MAX, waitKey, type WaitEntry } from '../waitlist';
@@ -149,6 +151,19 @@ export class KvStore implements DataStore {
   }
   async reviews(limit = 50) {
     return (await this.kv.lrange('reviews', 0, limit - 1)).map((v) => parse<ReviewLog & { at: string }>(v)).filter((v): v is ReviewLog & { at: string } => !!v);
+  }
+  async notes(): Promise<WorkNote[]> {
+    const all = (await this.kv.hgetall('notes')) || {};
+    return Object.values(all)
+      .map((v) => parse<WorkNote>(v))
+      .filter((v): v is WorkNote => !!v)
+      .sort((a, b) => a.title.localeCompare(b.title, 'ko'));
+  }
+  async putNote(n: WorkNote) {
+    await this.kv.hset('notes', { [n.id]: JSON.stringify(n) });
+  }
+  async removeNote(id: string) {
+    await this.kv.hdel('notes', id);
   }
   async removeWaitlist(e: Pick<WaitEntry, 'contact' | 'kind'>) {
     await this.kv.hdel('waitlist', waitKey(e));

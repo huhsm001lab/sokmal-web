@@ -64,8 +64,8 @@ function makeOut(host){
   const wrap=h('div',{class:'card',hidden:true},h('div',{class:'out-head'},h('strong',{},'결과'),stop),status,pt,body,acts,extra);
   host.append(wrap);
   const o={text:'',meta:null,
-    start(onStop){wrap.hidden=false;body.replaceChildren();pt.replaceChildren();acts.hidden=true;acts.replaceChildren();extra.replaceChildren();status.textContent='생각하는 중… (처음엔 조금 걸려요)';stop.hidden=false;stop.onclick=onStop;wrap.scrollIntoView({behavior:'smooth',block:'start'});},
-    set(t){o.text=t;status.textContent='';if(!pt.firstChild&&/^\s*\[상대\]/m.test(t))pt.append(partnerToggle());renderText(body,t);},
+    start(onStop){o.note=null;wrap.hidden=false;body.replaceChildren();pt.replaceChildren();acts.hidden=true;acts.replaceChildren();extra.replaceChildren();status.textContent='생각하는 중… (처음엔 조금 걸려요)';stop.hidden=false;stop.onclick=onStop;wrap.scrollIntoView({behavior:'smooth',block:'start'});},
+    set(t){o.text=t;status.textContent='';if(o.note&&!pt.querySelector('.note-badge'))pt.prepend(h('div',{class:'note-badge'},'✓ 검수된 작품 노트 기준'));if(!pt.firstChild&&/^\s*\[상대\]/m.test(t))pt.append(partnerToggle());renderText(body,t);},
     finish(actions,truncated,ctx){stop.hidden=true;status.textContent=truncated?'답이 길어 중간에 끊겼어요. 입력을 줄여서 다시 시도해 보세요.':'';acts.replaceChildren(...actions.map(a=>h('button',{type:'button',class:'btn small'+(a.primary?' primary':''),onclick:a.fn},a.label)));acts.hidden=false;
       if(ctx){const meta=Object.assign({},o.meta||{});const add=meta.extra?meta.extra(ctx.text):null;const chat=meta.chatCfg&&!isMetaReply(ctx.text)?chatBlock(ctx,meta.chatCfg):null;extra.replaceChildren(add||'',h('p',{class:'ai-note'},'AI와 함께 쓴 글이에요. 고르고 고치고 버리는 건 당신의 몫이에요.'),chat?chat.el:'',isMetaReply(ctx.text)?'':fbBlock(meta,()=>chat?chat.turns():0));}},
     /* 11-27 검수 단계: 쓰는 동안·다듬는 동안 상태 글 */
@@ -87,7 +87,7 @@ async function runAI({spec,out,btn,actions,onDone}){
   const ctl=new AbortController();out.start(()=>ctl.abort());btn.disabled=true;
   try{
     const r=await Api.run(spec,{signal:ctl.signal,onText:t=>out.set(t),onPhase:p=>out.phase&&out.phase(p)});
-    if(onDone){try{await onDone(r.text);}catch(x){}}out.set(r.text);out.finish(actions(r.text,()=>runAI({spec,out,btn,actions,onDone})),r.truncated,{base:r.base,text:r.text});
+    if(onDone){try{await onDone(r.text);}catch(x){}}out.note=r.note||null;out.set(r.text);out.finish(actions(r.text,()=>runAI({spec,out,btn,actions,onDone})),r.truncated,{base:r.base,text:r.text});
   }catch(e){
     if(e&&e.text)out.set(e.text);
     out.fail(errCopy(e));
@@ -124,7 +124,7 @@ const Api={ready:false,auth:null,
     if(err){if(err.error==='refused'){if(onText)onText('');throw {code:'refused'};}throw {code:err.error,text:err.text||undefined};}
     if(!done)throw {code:'network',text:text||undefined};
     if(done.usage)Usage.set(done.usage);
-    return {text:done.text,truncated:!!done.truncated,base:done.base||null};}
+    return {text:done.text,truncated:!!done.truncated,base:done.base||null,note:done.note||null};}
 };
 /* 오늘 사용 횟수: 서버가 센 값을 받아 보여 주기만 한다 */
 const Usage={data:{},set(u){if(u){this.data=u;paintUsage();}}};
@@ -560,7 +560,8 @@ $('#a-run').addEventListener('click',()=>{
     spec={kind:'interpret',mode:'exam',input:{text,work,part,mine:mineE}};
     meta={feature:'해석',mode:'exam',titleOnly:!text,textLen:text.length,part,chatCfg:EXAM_FOLLOW,
       extra:t=>{if(isMetaReply(t))return null;const box=h('div');
-        if(!text)box.append(h('div',{class:'note warn'},'작품명만으로 정리했어요. 본문과 다를 수 있으니 확인이 필요해요.'));
+        if(aOut.note)box.append(h('div',{class:'note'},'「'+aOut.note+'」은 SOKMAL이 사람이 검수한 작품 노트를 기준으로 정리했어요.'));
+        else if(!text)box.append(h('div',{class:'note warn'},'작품명만으로 정리했어요. 본문과 다를 수 있으니 확인이 필요해요.'));
         else if(part)box.append(h('div',{class:'note'},'일부 본문 기준으로 정리했어요.'));
         const memo=h('textarea',{placeholder:'정리를 보며 떠오른 내 분석을 적어 두세요. 시험장에서 말할 건 결국 내 생각이에요',maxlength:'3000'});
         box.append(h('div',{class:'mymemo'},h('b',{},'내 분석 메모'),memo,h('button',{type:'button',class:'btn small primary',onclick:async()=>{const v=memo.value.trim();if(!v){toast('먼저 적어 주세요');return;}const ok=await addRec({kind:'분석',title:(work||'작품')+' · 내 분석',body:v+'\n\n— 참고한 AI 정리 —\n'+t,work,tags:['입시','내 분석'],status:'',source:'직접',ref:''});if(ok)toast('내 분석을 기록에 저장했어요');}},'내 분석 저장')));

@@ -1,3 +1,4 @@
+import type { WorkNote } from '../notes';
 import type { MonoGuide } from '../guide';
 import type { WaitEntry } from '../waitlist';
 import type { PromptSwitches } from '../prompts/switches';
@@ -97,6 +98,10 @@ export interface DataStore {
   /** 검수 기록 (관리자만 봄, 최근 300건) */
   logReview(r: ReviewLog): Promise<void>;
   reviews(limit?: number): Promise<(ReviewLog & { at: string })[]>;
+  /** 검수된 작품 노트 */
+  notes(): Promise<WorkNote[]>;
+  putNote(n: WorkNote): Promise<void>;
+  removeNote(id: string): Promise<void>;
 }
 
 export const emptyUsage = (): DayUsage => ({

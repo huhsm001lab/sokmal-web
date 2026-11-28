@@ -325,6 +325,55 @@
       tabs, ...Object.values(panes),
       h('div', { class: 'out-acts' }, saveG));
 
+    /* 검수된 작품 노트 (11-28): 해석이 사실의 기준으로 씀. 검수됨만 쓰임 */
+    const wNotes = d.notes || [];
+    const nf = { id: h('input', { type: 'hidden' }) };
+    const inp = (k, label, ph, multi) => {
+      const el = multi ? h('textarea', { class: 'guide-ta note-ta', id: 'note-' + k, placeholder: ph, maxlength: k === 'monoSpots' ? '4000' : '6000' }) : h('input', { type: 'text', class: 'note-in', id: 'note-' + k, placeholder: ph, maxlength: '100' });
+      nf[k] = el;
+      return [h('label', { class: 'f', for: 'note-' + k }, label), el];
+    };
+    const status = h('select', { id: 'note-status', class: 'note-in' }, h('option', { value: '초안' }, '초안 (서비스에 안 씀)'), h('option', { value: '검수됨' }, '검수됨 (해석에 씀)'));
+    const fillNote = (n) => {
+      nf.id.value = n ? n.id : '';
+      ['title', 'author', 'summary', 'characters', 'monoSpots', 'checkedBy'].forEach((k) => { nf[k].value = n ? n[k] || '' : ''; });
+      nf.aliases.value = n ? (n.aliases || []).join(', ') : '';
+      status.value = n ? n.status : '초안';
+      noteForm.hidden = false; nf.title.focus();
+    };
+    const saveN = h('button', { type: 'button', class: 'btn primary' }, '노트 저장');
+    saveN.addEventListener('click', async () => {
+      if (!nf.title.value.trim()) { toast('작품명을 넣어 주세요'); return; }
+      saveN.disabled = true;
+      const note = { id: nf.id.value || undefined, title: nf.title.value, aliases: nf.aliases.value, author: nf.author.value, summary: nf.summary.value, characters: nf.characters.value, monoSpots: nf.monoSpots.value, checkedBy: nf.checkedBy.value, status: status.value };
+      const r = await api('POST', { note }).catch(() => ({ status: 0 }));
+      saveN.disabled = false;
+      if (r.status === 200 && r.j.note) { d.notes = [...(d.notes || []).filter((x) => x.id !== r.j.note.id), r.j.note]; toast('작품 노트를 저장했어요'); render(d); } else toast(r.j && r.j.error === 'full' ? '노트가 너무 많아요 (200개까지)' : '저장하지 못했어요');
+    });
+    const noteForm = h('div', { class: 'note-form', hidden: true },
+      h('div', { class: 'note warn' }, '작품의 실제 대사(원문)는 넣지 마세요. 줄거리·인물·위치를 내 말로 요약해 적어요.'),
+      nf.id, ...inp('title', '작품명', '예) 빈 집', false), ...inp('aliases', '다른 이름 (쉼표로)', '예) 빈집, The Empty House', false), ...inp('author', '작가', '', false),
+      ...inp('summary', '줄거리 (사실만, 사건 흐름)', '', true), ...inp('characters', '인물과 관계', '인물: 한 줄 소개 / 누구와 어떤 관계', true), ...inp('monoSpots', '독백 후보 위치', '막·장 단위 위치 / 무슨 장면인지', true),
+      ...inp('checkedBy', '검수한 사람', '예) 송무', false), h('label', { class: 'f', for: 'note-status' }, '상태'), status,
+      h('div', { class: 'out-acts' }, saveN, h('button', { type: 'button', class: 'btn', onclick: () => { noteForm.hidden = true; } }, '닫기')));
+    const nCardNotes = h('div', { class: 'card' }, h('h3', {}, '검수된 작품 노트 ' + wNotes.length + '편'),
+      h('p', { class: 'adm-leg' }, '해석에서 작품명(또는 본문 첫 줄)이 노트 제목·다른 이름과 맞으면, AI가 이 노트를 사실의 기준으로 써요. 「검수됨」인 노트만 쓰여요. 작품명만 넣어도 지어내지 않고 정리해요.'),
+      h('div', { class: 'out-acts' }, h('button', { type: 'button', class: 'btn', id: 'note-new', onclick: () => fillNote(null) }, '+ 새 노트')),
+      noteForm,
+      wNotes.length ? h('div', { class: 'adm-scroll' }, h('table', { class: 'adm-table' },
+        h('thead', {}, h('tr', {}, ['작품', '작가', '상태', '검수', '고친 때', ''].map((x) => h('th', {}, x)))),
+        h('tbody', {}, wNotes.map((n) => {
+          const del = h('button', { type: 'button', class: 'btn small' }, '지우기');
+          del.addEventListener('click', async () => {
+            if (!confirm(n.title + ' 노트를 지울까요?')) return;
+            const r = await api('POST', { noteDelete: n.id }).catch(() => ({ status: 0 }));
+            if (r.status === 200) { d.notes = (d.notes || []).filter((x) => x.id !== n.id); toast('지웠어요'); render(d); } else toast('지우지 못했어요');
+          });
+          return h('tr', {}, h('td', {}, n.title + (n.aliases && n.aliases.length ? ' (' + n.aliases.join(', ') + ')' : '')), h('td', {}, n.author || '-'),
+            h('td', {}, h('span', { class: 'tag' + (n.status === '검수됨' ? ' ok' : '') }, n.status)), h('td', {}, n.checkedBy || '-'), h('td', {}, timeOf(n.updatedAt)),
+            h('td', {}, h('div', { class: 'adm-name' }, h('button', { type: 'button', class: 'btn small', onclick: () => fillNote(n) }, '고치기'), del)));
+        })))) : h('div', { class: 'adm-leg' }, '아직 없어요.'));
+
     /* 검수 기록 (관리자만) */
     const rv = d.reviews || [];
     const rvsCard = h('div', { class: 'card' }, h('h3', {}, '독백 검수 기록 (최근 ' + rv.length + '건)'),
@@ -337,7 +386,7 @@
 
     body.replaceChildren(
       ...notes.map((n) => h('div', { class: 'note warn' }, n)),
-      swCard, gCard, rvsCard, stats, tCard, cCard, ind, sv, rvCard, nCard, wCard,
+      swCard, gCard, rvsCard, nCardNotes, stats, tCard, cCard, ind, sv, rvCard, nCard, wCard,
       h('div', { class: 'out-acts', style: 'margin:16px 0 40px' }, csvFb, csvCalls, csvWait),
       h('p', { class: 'adm-leg' }, '저장소: ' + ({ redis: 'Upstash Redis', supabase: 'Supabase', file: '내 컴퓨터 파일', memory: '서버 메모리(꺼지면 사라짐)' }[m.storage] || m.storage) + ' · AI: ' + (m.provider === 'openai' ? 'OpenAI' : 'Anthropic')));
   }

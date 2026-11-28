@@ -5,6 +5,7 @@ import * as P from './sokmal-prompts.js';
 import { LIMITS, type CounterKey } from '../limits';
 import { applyMonoSwitches, DEFAULT_SWITCHES, switchTag, type PromptSwitches } from './switches';
 import { appendGuide, applyMakeGuide, EMPTY_GUIDE, type MonoGuide } from '../guide';
+import { appendNote, matchNote, type WorkNote } from '../notes';
 
 export class BadInput extends Error {
   constructor(public code: 'bad_request' | 'prompt_too_large', msg: string) {
@@ -85,6 +86,8 @@ export type Job = {
   refundMeta: boolean;
   /** 검수 기준 (있으면 1차 답을 이 기준으로 검수·수정한 최종본을 보냄) */
   review?: string;
+  /** 해석에 쓴 검수된 작품 노트 제목 (화면에 표시) */
+  note?: string;
 };
 
 /** 오늘 남은 횟수를 알려 주는 함수 (전문 해석의 "오늘 마지막 답" 판단에 씀) */
@@ -181,15 +184,16 @@ function parseBase(v: unknown): Base {
 }
 
 /* ---------- 프롬프트 조립 ---------- */
-export function basePrompt(b: Base, sw: PromptSwitches = DEFAULT_SWITCHES, guide: MonoGuide = EMPTY_GUIDE): string {
+export function basePrompt(b: Base, sw: PromptSwitches = DEFAULT_SWITCHES, guide: MonoGuide = EMPTY_GUIDE, note: WorkNote | null = null): string {
   switch (b.kind) {
     case 'interpret':
-      return appendGuide(
+    {
+      const raw =
         b.mode === 'exam'
           ? P.examPromptOf({ text: b.input.text, work: b.input.work, part: b.input.part, mine: b.input.mine })
-          : P.proPromptOf({ ...b.input, last: b.last }),
-        b.mode === 'exam' ? guide.exam : guide.pro,
-      );
+          : P.proPromptOf({ ...b.input, last: b.last });
+      return appendGuide(appendNote(raw, note), b.mode === 'exam' ? guide.exam : guide.pro);
+    }
     case 'mono':
       return applyMakeGuide(applyMonoSwitches(P.monoPrompt(b.c, b.qa, b.mMode, b.hist), sw), sw.monoRules ? guide.make : '', b.c.kw.mtype);
     case 'image':
@@ -211,7 +215,8 @@ function checkMono(b: MonoBase) {
 const MAX_CHAT_TURNS = 40;
 
 /** 요청 하나를 서버가 할 일로 바꾼다 */
-export function buildJob(body: unknown, left: LeftFn, sw: PromptSwitches = DEFAULT_SWITCHES, guide: MonoGuide = EMPTY_GUIDE): Job {
+export function buildJob(body: unknown, left: LeftFn, sw: PromptSwitches = DEFAULT_SWITCHES, guide: MonoGuide = EMPTY_GUIDE, notes: WorkNote[] = []): Job {
+  const noteOf = (b: InterpretBase) => matchNote(notes, b.input.work, b.input.text);
   const tag = switchTag(sw) + (sw.monoRules && guide.make ? ' [제작 기준]' : '');
   if (!isObj(body)) throw new BadInput('bad_request', '요청');
   const user = (content: string): Anthropic.Beta.BetaMessageParam => ({ role: 'user', content });
@@ -223,10 +228,12 @@ export function buildJob(body: unknown, left: LeftFn, sw: PromptSwitches = DEFAU
       checkInterpret(b);
       // 원본과 같은 판단: 이번이 오늘 마지막 1번이면 마무리 답으로 (전문 모드)
       if (mode === 'pro') b.last = left('pro') === 1;
+      const note = noteOf(b);
       return {
-        feature: '해석·' + mode,
+        ...(note ? { note: note.title } : {}),
+        feature: '해석·' + mode + (note ? ' [작품 노트]' : ''),
         tier: 'main',
-        messages: [user(basePrompt(b, sw, guide))],
+        messages: [user(basePrompt(b, sw, guide, note))],
         counter: { key: mode, kind: 'run', limit: LIMITS.daily[mode] },
         base: b,
         refundMeta: true,
@@ -282,7 +289,8 @@ export function buildJob(body: unknown, left: LeftFn, sw: PromptSwitches = DEFAU
         throw new BadInput('bad_request', '이 결과는 이어서 묻기를 쓰지 않음');
       }
       // 원본 브라우저 코드와 같은 순서로 대화를 다시 쌓는다
-      const msgs: Anthropic.Beta.BetaMessageParam[] = [user(basePrompt(base, sw, guide)), { role: 'assistant', content: first }];
+      const chatNote = base.kind === 'interpret' ? noteOf(base) : null;
+      const msgs: Anthropic.Beta.BetaMessageParam[] = [user(basePrompt(base, sw, guide, chatNote)), { role: 'assistant', content: first }];
       turns.forEach((t, i) => {
         msgs.push(user(wrap(t.q, { turn: i + 2, last: false })));
         msgs.push({ role: 'assistant', content: t.a });

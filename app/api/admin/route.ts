@@ -5,6 +5,7 @@ import { aiNotReady, config, hideKeys } from '@/lib/config';
 import { kstMonthStartIso } from '@/lib/limits';
 import { cleanSwitches } from '@/lib/prompts/switches';
 import { cleanGuide } from '@/lib/guide';
+import { cleanNote, NOTE_MAX } from '@/lib/notes';
 import { getStore, json, storeKind } from '@/lib/server';
 
 export const runtime = 'nodejs';
@@ -37,6 +38,7 @@ export async function GET(req: Request) {
     waitlist: await s.waitlist(),
     guide: await s.getGuide(),
     reviews: await s.reviews(50),
+    notes: await s.notes(),
     meta: {
       storage: storeKind(),
       persistent: ['redis', 'supabase', 'file'].includes(storeKind()),
@@ -53,7 +55,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const s = gate(req);
   if (s instanceof Response) return s;
-  let b: { name?: { uid?: unknown; name?: unknown }; approve?: { uid?: unknown; v?: unknown }; switches?: unknown; guide?: unknown; waitDelete?: { contact?: unknown; kind?: unknown } };
+  let b: { name?: { uid?: unknown; name?: unknown }; approve?: { uid?: unknown; v?: unknown }; switches?: unknown; guide?: unknown; note?: unknown; noteDelete?: unknown; waitDelete?: { contact?: unknown; kind?: unknown } };
   try {
     b = await req.json();
   } catch {
@@ -66,6 +68,17 @@ export async function POST(req: Request) {
   }
   if (b.waitDelete && typeof b.waitDelete.contact === 'string' && (b.waitDelete.kind === 'email' || b.waitDelete.kind === 'phone')) {
     await s.removeWaitlist({ contact: b.waitDelete.contact, kind: b.waitDelete.kind });
+    return json({ ok: true });
+  }
+  if (b.note && typeof b.note === 'object') {
+    const n = cleanNote(b.note);
+    if (!n) return json({ error: 'bad_request' }, 400);
+    if ((await s.notes()).length >= NOTE_MAX && !(await s.notes()).some((x) => x.id === n.id)) return json({ error: 'full' }, 400);
+    await s.putNote(n);
+    return json({ ok: true, note: n });
+  }
+  if (typeof b.noteDelete === 'string' && /^[a-z0-9-]{6,40}$/.test(b.noteDelete)) {
+    await s.removeNote(b.noteDelete);
     return json({ ok: true });
   }
   if (b.guide && typeof b.guide === 'object') {

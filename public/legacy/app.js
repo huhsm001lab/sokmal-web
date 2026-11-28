@@ -474,6 +474,46 @@ function monoCtx(){
 let mMode='new';
 seg($('#m-mode'),v=>{mMode=v;$('#m-draft-wrap').hidden=v!=='refine';$('#m-adapt-wrap').hidden=v!=='adapt';$('#m-ask').replaceChildren();});
 const mOut=makeOut($('#m-out'));
+/* 11-28 내 말로 고치기: 줄마다 직접 고치거나, 한 줄만 다른 말 3가지 받아서 고르기. 저장하면 AI 초안과 내가 고친 것이 함께 남음 */
+/* 결과에서 독백 본문만 (## 독백 / ## 다듬은 제안 섹션) */
+function monoBody(t){const x=cleanText(t);const m=x.match(/^##\s*(독백|다듬은 제안)\s*$/m);if(!m)return x;const rest=x.slice(m.index+m[0].length);const n=rest.search(/^##\s/m);return (n>=0?rest.slice(0,n):rest).trim();}
+function lineEditor(original,work,tags){
+  const orig=monoBody(original);const rows=[];
+  const list=h('div',{class:'le-list'});
+  const count=h('span',{class:'le-count'});
+  const cur=()=>rows.map(r=>r.ta?r.ta.value.trim():'').join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  const paint=()=>{const n=rows.filter(r=>r.ta&&r.ta.value.trim()!==r.from).length;count.textContent=n?n+'줄 고쳤어요':'아직 고친 줄이 없어요';return n;};
+  orig.split('\n').forEach(line=>{
+    if(!line.trim()){rows.push({});list.append(h('div',{class:'le-gap'}));return;}
+    const ta=h('textarea',{class:'le-ta',rows:'1',maxlength:'500','aria-label':'대사 한 줄'});ta.value=line.trim();
+    const fit=()=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';};
+    ta.addEventListener('input',()=>{fit();paint();});
+    const opts=h('div',{class:'le-opts'});
+    const alt=h('button',{type:'button',class:'btn small le-alt'},'다른 말로');
+    alt.addEventListener('click',async()=>{
+      if(!ta.value.trim())return;alt.disabled=true;opts.replaceChildren(h('span',{class:'hint'},'다른 말을 찾는 중…'));
+      try{const r=await Api.run({kind:'mono_line',text:cur(),line:ta.value.trim()});
+        const os=String(r.text).split('\n').map(x=>x.trim()).filter(x=>/^[-•*]\s+/.test(x)).map(x=>x.replace(/^[-•*]\s+/,'').trim()).filter(Boolean).slice(0,3);
+        opts.replaceChildren(...(os.length?os.map(o=>h('button',{type:'button',class:'chip le-opt',onclick:()=>{ta.value=o;fit();paint();opts.replaceChildren();}},o)):[h('span',{class:'hint'},'다른 말을 찾지 못했어요. 직접 고쳐 보세요')]),
+          os.length?h('button',{type:'button',class:'chip le-keep',onclick:()=>opts.replaceChildren()},'그대로 둘래요'):'');
+      }catch(e){opts.replaceChildren(h('span',{class:'hint'},errCopy(e)));}
+      alt.disabled=false;});
+    const r={ta,from:line.trim()};rows.push(r);
+    list.append(h('div',{class:'le-row'},h('div',{class:'le-line'},ta,alt),opts));
+    setTimeout(fit,0);
+  });
+  const save=h('button',{type:'button',class:'btn primary'},'내가 고친 것 저장');
+  save.addEventListener('click',async()=>{const n=paint();const mine=cur();
+    const ok=await addRec({kind:'독백',title:((work()||'').trim()?work().trim()+' · ':'')+'내가 고친 독백 '+new Date().toLocaleDateString('ko-KR')+(n?' ('+n+'줄 고침)':''),body:mine+'\n\n— AI 초안 —\n'+orig,work:(work()||'').trim(),tags:[...tags(),'고쳐 씀'].slice(0,8),status:'',source:'AI+나',ref:''});
+    if(ok)toast('내 기록에 저장했어요. AI 초안도 함께 남겨 뒀어요');});
+  const reset=h('button',{type:'button',class:'btn'},'처음으로');
+  reset.addEventListener('click',()=>{rows.forEach(r=>{if(r.ta){r.ta.value=r.from;r.ta.dispatchEvent(new Event('input'));}});});
+  const copy=h('button',{type:'button',class:'btn'},'복사');copy.addEventListener('click',()=>copyText(cur()));
+  paint();
+  return h('div',{class:'card le'},h('h3',{},'내 말로 고치기'),
+    h('p',{class:'hint',style:'margin:0 0 8px'},'줄을 눌러 직접 고치거나, 「다른 말로」로 같은 뜻의 다른 말 3가지를 받아 골라요. 정답은 없어요. 소리 내어 읽어 보고 내 입에 붙는 말로.'),
+    list,h('div',{class:'le-foot'},count),h('div',{class:'out-acts'},save,reset,copy));
+}
 /* 11-28 갈래: 같은 재료로 짧은 버전 여러 개 → 고르거나 섞기 */
 function parseVariants(t){const out=[];const re=/^##[ \t]*갈래[ \t]*(\d+)[ \t]*[—\-–:]?[ \t]*(.*)$/gm;const ms=[...String(t).matchAll(re)];ms.forEach((m,i)=>{const st=m.index+m[0].length;const en=i+1<ms.length?ms[i+1].index:t.length;const body=t.slice(st,en).trim();if(body)out.push({label:(m[2]||'').trim()||'갈래 '+m[1],text:body});});return out;}
 function variantCards(t,c,qa){const vs=parseVariants(t);if(!vs.length)return null;
@@ -488,7 +528,11 @@ function writeMono(c,qa,opt){
   $('#m-ask').replaceChildren();
   const work=()=>$('#m-work').value;const kw=c.kw;
   mOut.meta={feature:'독백',chatCfg:c.pro&&!variants?CHAT.monologue:null,sub:variants?'갈래 보기':opt.from?'갈래로 완성':mode==='refine'?'초안 다듬기':mode==='adapt'?'번안':(qa&&qa.some(x=>x.a)?'묻고 쓰기':'바로 쓰기'),length:kw.length,
-    extra:variants?(t=>{const cards=variantCards(t,c,qa);if(cards)mOut.hideBody();return cards;}):null};
+    extra:variants?(t=>{const cards=variantCards(t,c,qa);if(cards)mOut.hideBody();return cards;}):(t=>{if(isMetaReply(t))return null;
+      const tagsFn=()=>[c.pro?'전문':'입시',...kw.emotion,...kw.situation];const slot=h('div');
+      const open=h('button',{type:'button',class:'btn primary small',id:'m-rewrite'},'내 말로 고치기');
+      open.addEventListener('click',()=>{if(slot.firstChild){slot.replaceChildren();open.textContent='내 말로 고치기';return;}slot.append(lineEditor(t,work,tagsFn));open.textContent='고치기 닫기';slot.scrollIntoView({behavior:'smooth',block:'start'});});
+      return h('div',{class:'rewrite-cta'},h('p',{},'이건 시작점이에요. 내 말로 바꿔 보세요.'),open,slot);})};
   if(!gate('mono'))return;
   const spec={kind:'mono',c,qa,mMode:mode,hist:MONO_HIST.slice()};if(variants)spec.variants=3;
   runAI({spec,out:mOut,btn:$('#m-run'),onDone:t=>{const d=parseDesign(t);if(d&&mode==='new'&&!variants){MONO_HIST.push(d);if(MONO_HIST.length>4)MONO_HIST.shift();}},actions:(text)=>variants?[{label:'갈래 다시 보기',fn:()=>writeMono(c,qa,{variants:true})}]:[

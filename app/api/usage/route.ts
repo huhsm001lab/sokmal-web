@@ -1,6 +1,6 @@
 // 오늘 남은 횟수 보기(GET) / 화면에서 미리 막혔을 때 '한도에 걸림' 기록(POST {hit})
 import { aiNotReady, config } from '@/lib/config';
-import { kstDay, LIMITS, type CounterKey } from '@/lib/limits';
+import { COUNTER_KEYS, kstDay, LIMITS, type CounterKey } from '@/lib/limits';
 import { usingExamplePrompts } from '@/lib/prompts/build';
 import { inviteOk } from '@/lib/invite';
 import { getStore, inviteCodeOf, json, userIdOf } from '@/lib/server';
@@ -8,7 +8,7 @@ import { getStore, inviteCodeOf, json, userIdOf } from '@/lib/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const KEYS: CounterKey[] = ['exam', 'pro', 'mono'];
+const KEYS: CounterKey[] = COUNTER_KEYS;
 
 export async function GET(req: Request) {
   const store = getStore();

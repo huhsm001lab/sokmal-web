@@ -108,4 +108,6 @@ export const emptyUsage = (): DayUsage => ({
   exam: { run: 0, follow: 0, hits: 0 },
   pro: { run: 0, follow: 0, hits: 0 },
   mono: { run: 0, follow: 0, hits: 0 },
+  line: { run: 0, follow: 0, hits: 0 },
+  talk: { run: 0, follow: 0, hits: 0 },
 });

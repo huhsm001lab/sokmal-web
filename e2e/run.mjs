@@ -195,6 +195,26 @@ try {
     assert.equal((await usage()).mono.run, before + 1);
   });
 
+  await step('내 말로 고치기: 줄 직접 고치기 + 다른 말 3가지 고르기 → 저장(AI 초안 함께)', async () => {
+    await page.click('#m-out #m-rewrite');
+    const tas = page.locator('#m-out .le-ta');
+    await tas.first().waitFor({ timeout: 5000 });
+    await tas.first().fill('내가 직접 고친 첫 줄');
+    await page.locator('#m-out .le-row').nth(1).locator('.le-alt').click();
+    await page.locator('#m-out .le-opt').first().waitFor({ timeout: 15000 });
+    assert.equal(await page.locator('#m-out .le-opt').count(), 3);
+    await page.locator('#m-out .le-opt', { hasText: '다른 말 둘' }).click();
+    assert.match(await page.locator('#m-out .le-count').textContent(), /2줄 고쳤어요/);
+    assert.equal((await usage()).line.run, 1);
+    await page.screenshot({ path: OUT + '04c-rewrite.png', fullPage: true });
+    await page.locator('#m-out .le button', { hasText: '내가 고친 것 저장' }).click();
+    assert.match(await toastText(), /AI 초안도 함께/);
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('sokmal.records') || '[]'));
+    const mine = saved.find((r) => /내가 고친 독백/.test(r.title));
+    assert.ok(mine && mine.body.startsWith('내가 직접 고친 첫 줄') && mine.body.includes('— AI 초안 —') && mine.tags.includes('고쳐 씀'));
+    assert.ok(!/더 나답게 만들려면|## /.test(mine.body), '독백 본문만 고침');
+  });
+
   await step('전문 모드 해석: 이어서 생각 넓히기 (원래 요청을 서버가 다시 쌓음)', async () => {
     await page.goto(BASE + '/#analysis');
     await page.locator('#mode-top button[data-v="pro"]').click();

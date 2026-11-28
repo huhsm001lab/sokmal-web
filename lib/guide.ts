@@ -144,3 +144,29 @@ export function parseVariants(text: string): Variant[] {
   });
   return out;
 }
+
+/** 내 말로 고치기 (11-28): 독백의 한 줄을 다른 말 3가지로. 배우가 고르거나 직접 고친다 */
+export const LINE_TAG = '[고칠 줄]';
+export function linePrompt(monologue: string, line: string): string {
+  return `당신은 배우의 독백을 같이 다듬는 극작가입니다. 아래 독백에서 ${LINE_TAG} 하나만 다른 말로 3가지 씁니다.
+- 같은 인물, 같은 상대, 같은 순간입니다. 앞뒤 줄과 자연스럽게 이어져야 합니다.
+- 그 줄이 상대에게 하려던 일은 그대로 두고 말만 바꿉니다. 세 가지는 서로 다른 말맛으로 씁니다.
+- 실제 사람이 하는 입말로 씁니다. 설명하지 않고, 상대가 이미 아는 일을 풀지 않습니다.
+- 연기 방식(호흡·강약·표정·속도)이나 지문은 적지 않습니다.
+- 형식: "- "로 시작하는 3줄만 씁니다. 다른 말은 쓰지 않습니다.
+
+[독백]
+${monologue}
+
+${LINE_TAG}
+${line}`;
+}
+export function parseLineOptions(text: string): string[] {
+  return text
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => /^[-•*]\s+/.test(l))
+    .map((l) => l.replace(/^[-•*]\s+/, '').replace(/^["“](.*)["”]$/, '$1').trim())
+    .filter(Boolean)
+    .slice(0, 3);
+}

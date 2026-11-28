@@ -19,11 +19,11 @@ import { cleanGuide, type MonoGuide } from '../guide';
 import { hideKeys } from '../config';
 import { WAIT_MAX, waitKey, type WaitEntry } from '../waitlist';
 import { cleanSwitches, type PromptSwitches } from '../prompts/switches';
-import type { CounterKey } from '../limits';
+import { COUNTER_KEYS, type CounterKey } from '../limits';
 import type { Kv } from './kv';
 import { emptyUsage, type AdminSnapshot, type CallLog, type DataStore, type FeedbackDoc, type ReviewLog, type TesterRow } from './types';
 
-const KEYS: CounterKey[] = ['exam', 'pro', 'mono'];
+const KEYS: CounterKey[] = COUNTER_KEYS;
 const num = (v: unknown) => {
   const n = Number(v ?? 0);
   return Number.isFinite(n) ? n : 0;

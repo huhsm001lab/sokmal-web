@@ -213,7 +213,10 @@ async function mockRun(job: Job, model: string, signal: AbortSignal, onText: (d:
   const last = job.messages[job.messages.length - 1];
   const isReview = typeof last?.content === 'string' && last.content.startsWith('[검수 단계');
   const isVariants = typeof last?.content === 'string' && last.content.includes('[갈래 보기]');
-  const text = isVariants
+  const isLine = typeof last?.content === 'string' && last.content.includes('[고칠 줄]');
+  const text = isLine
+    ? '- (가짜) 다른 말 하나\n- (가짜) 다른 말 둘\n- (가짜) 다른 말 셋'
+    : isVariants
     ? '[설계] 미안하다는 말 ｜ 세 갈래\n## 갈래 1 — 먼저 따지며\n(가짜 답) 왜 말 안 했어? 나만 몰랐잖아.\n## 갈래 2 — 끝까지 감추며\n(가짜 답) 아니야, 괜찮아. 진짜 괜찮다니까.\n## 갈래 3 — 슬쩍 떠보며\n(가짜 답) 혹시… 나한테 할 말 있어?'
     : isReview
     ? '[검수]\n대사의 자연스러움 12/15 — "시험용 줄"이 설명적이라 고침\n수정 전 총점: 71/100\n수정 후 총점: 84/100\n===최종 독백===\n' + (MOCK.mono ?? '').replace('## 독백', '## 독백\n(검수 뒤 최종본)')

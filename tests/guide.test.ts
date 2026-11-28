@@ -95,3 +95,18 @@ describe('독백 갈래 (11-28)', () => {
     expect(r.review).toBe('검수');
   });
 });
+
+describe('내 말로 고치기 (11-28)', () => {
+  it('한 줄 다른 말: 가벼운 모델, line 횟수 30, 연기 지시 금지', async () => {
+    const { buildJob } = await import('@/lib/prompts/build');
+    const { parseLineOptions } = await import('@/lib/guide');
+    const j = buildJob({ kind: 'mono_line', text: '왔네.\n물 마시러 나온 거야.', line: '물 마시러 나온 거야.' }, () => 5);
+    expect(j.tier).toBe('light');
+    expect(j.counter).toEqual({ key: 'line', kind: 'run', limit: 30 });
+    const t = String(j.messages[0].content);
+    expect(t).toContain('[고칠 줄]\n물 마시러 나온 거야.');
+    expect(t).toContain('연기 방식');
+    expect(() => buildJob({ kind: 'mono_line', text: '', line: 'x' }, () => 5)).toThrow();
+    expect(parseLineOptions('- 하나\n• "둘"\n그냥 글\n- 셋\n- 넷')).toEqual(['하나', '둘', '셋']);
+  });
+});

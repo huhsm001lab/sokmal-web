@@ -4,7 +4,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import * as P from './sokmal-prompts.js';
 import { LIMITS, type CounterKey } from '../limits';
 import { applyMonoSwitches, DEFAULT_SWITCHES, switchTag, type PromptSwitches } from './switches';
-import { appendGuide, applyMakeGuide, EMPTY_GUIDE, variantsWrap, type MonoGuide } from '../guide';
+import { appendGuide, applyMakeGuide, EMPTY_GUIDE, linePrompt, variantsWrap, type MonoGuide } from '../guide';
 import { appendNote, matchNote, type WorkNote } from '../notes';
 
 export class BadInput extends Error {
@@ -262,6 +262,20 @@ export function buildJob(body: unknown, left: LeftFn, sw: PromptSwitches = DEFAU
         base: b,
         refundMeta: true,
         ...(guide.reviewOn && guide.review ? { review: guide.review } : {}),
+      };
+    }
+    case 'mono_line': {
+      // 내 말로 고치기 (11-28): 한 줄을 다른 말 3가지로. 가벼운 모델, 하루 'line' 횟수
+      const text = str(body.text, 6000, '독백').trim();
+      const line = str(body.line, 500, '고칠 줄').trim();
+      if (!text || !line) throw new BadInput('bad_request', '독백과 고칠 줄');
+      return {
+        feature: '독백·줄 고치기',
+        tier: 'light',
+        messages: [user(linePrompt(text, line))],
+        counter: { key: 'line', kind: 'run', limit: LIMITS.daily.line },
+        base: null,
+        refundMeta: false,
       };
     }
     case 'mono_ask': {

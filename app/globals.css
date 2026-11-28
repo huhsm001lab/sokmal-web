@@ -252,3 +252,17 @@ details.adm-row summary{cursor:pointer;font-size:14px}
 .variant-head{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
 .variant-n{font-size:12px;font-weight:700;color:#C2410C}
 @media (min-width:900px){.variants{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.variants>.hint{grid-column:1/-1}.variant{margin:0}}
+/* 내 말로 고치기 (11-28) */
+.rewrite-cta{margin:10px 0 4px;padding:12px 14px;border-radius:12px;background:var(--soft2)}
+.rewrite-cta>p{margin:0 0 8px;font-weight:700;color:var(--navy)}
+.le{margin-top:10px}
+.le-row{margin:6px 0}
+.le-line{display:flex;gap:6px;align-items:flex-start}
+.le-ta{flex:1;min-width:0;font:inherit;font-size:16px;line-height:1.5;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);resize:none;overflow:hidden}
+.le-ta:focus{border-color:var(--navy);outline:none}
+.le-alt{flex:none}
+.le-opts{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}
+.le-opt{text-align:left;height:auto;min-height:36px;white-space:normal}
+.le-keep{color:var(--muted)}
+.le-gap{height:10px}
+.le-foot{margin:8px 0 0;font-size:13px;color:var(--muted)}

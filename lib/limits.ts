@@ -1,9 +1,11 @@
 // 설정값 (PRD 9절). 숫자는 여기서만 바꿔요.
-export type CounterKey = 'exam' | 'pro' | 'mono';
+export type CounterKey = 'exam' | 'pro' | 'mono' | 'line' | 'talk';
+export const COUNTER_KEYS: CounterKey[] = ['exam', 'pro', 'mono', 'line', 'talk'];
 
 export const LIMITS = {
   /** 하루 횟수. 해석은 모드별(정리·이어서 묻기 모두 1회) [확정], 독백은 모드 합산 10회 [기본안] */
-  daily: { exam: 5, pro: 5, mono: 10 } as Record<CounterKey, number>,
+  daily: { exam: 5, pro: 5, mono: 10, line: 30, talk: 20 } as Record<CounterKey, number>,
+  /* 11-28: line = 독백 줄 다른 말로(가벼운 모델), talk = 연기 대화 [기본안] */
   /** 한 번에 받는 본문 글자 수 [임시값] */
   maxText: 80000,
   /** 번안 원문 글자 수 [개발값] */

@@ -239,3 +239,6 @@ html.gated .wrap{display:none}
 .guide-ta{display:block;width:100%;box-sizing:border-box;min-height:220px;font:inherit;font-size:14px;line-height:1.6;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);resize:vertical;margin:4px 0 2px}
 .guide-pre{white-space:pre-wrap;font:inherit;font-size:13px;line-height:1.6;background:var(--soft2);border-radius:8px;padding:10px;margin:4px 0 10px;max-height:420px;overflow:auto}
 details.adm-row summary{cursor:pointer;font-size:14px}
+.guide-tabs{margin:8px 0 4px;display:flex;flex-wrap:wrap}
+.guide-tabs button{flex:1 1 auto;padding:0 12px}
+.guide-tabs button{white-space:nowrap}

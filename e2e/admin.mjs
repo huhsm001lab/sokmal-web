@@ -93,8 +93,10 @@ try {
   await a.fill('#guide-make', '01. 대사의 자연스러움\n* 읽기 좋은 글보다 말하기 좋은 대사');
   await a.fill('#guide-review', '01. 창작 독백 평가표 (100점 만점)');
   await a.check('#guide-review-on');
+  await a.locator('.guide-tabs button', { hasText: '해석 입시' }).click();
+  await a.fill('#guide-exam', '입시 해석은 인물별 주장과 사실을 꼭 나눈다');
   await a.locator('button', { hasText: '기준 저장' }).click();
-  await a.locator('#guide-make').waitFor({ timeout: 5000 });
+  await a.locator('#guide-exam').waitFor({ timeout: 5000 });
   await a.waitForFunction(() => /마지막 저장/.test(document.querySelector('#adm-body')?.textContent || ''), null, { timeout: 5000 });
   const mono = { kind: 'mono', mMode: 'new', hist: [], qa: null, c: { pro: false, kw: { mtype: '입시 독백', writer: '', emotion: ['서운함'], situation: ['사과'], listener: ['친구'], mood: [], temper: [], hide: '', length: '1분' }, story: '시험', draft: '', memo: '', src: '', srcFrom: '', mat: '' } };
   const res = await fetch(BASE + '/api/ai', { method: 'POST', headers: { 'content-type': 'application/json', 'x-sokmal-invite': '705162' }, body: JSON.stringify(mono) });
@@ -104,6 +106,8 @@ try {
   assert.ok(done && done.text.includes('(검수 뒤 최종본)') && !done.text.includes('수정 전 총점'), '배우는 검수 내용 없이 최종본만 받아야 함');
   await a.reload();
   await a.locator('summary', { hasText: '점수 71 → 84' }).waitFor({ timeout: 8000 });
+  assert.equal(await a.locator("#guide-exam").inputValue(), "입시 해석은 인물별 주장과 사실을 꼭 나눈다", "해석 입시 기준이 저장돼야 함");
+  assert.match(await a.locator(".guide-tabs button", { hasText: "해석 입시" }).textContent(), /•/);
   assert.match(await a.locator('#adm-body').textContent(), /독백·new \[제작 기준\]·검수/, 'AI 호출 기록에 검수 호출이 보여야 함');
   await a.screenshot({ path: OUT + '07-admin.png', fullPage: true });
   // 폰 화면에서 가로로 넘치지 않는지 (표는 안에서 밀림)

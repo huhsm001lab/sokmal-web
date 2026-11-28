@@ -11,11 +11,17 @@ export type MonoGuide = {
   review: string;
   /** 검수 단계 켜기 */
   reviewOn: boolean;
+  /** 11-28: 해석(입시·전문)·내 이미지·연기 대화 관리자 기준. 있으면 그 기능 프롬프트 끝에 덧붙임 */
+  exam: string;
+  pro: string;
+  image: string;
+  talk: string;
   updatedAt: string | null;
 };
+export type GuideKey = 'exam' | 'pro' | 'image' | 'talk';
 
 export const GUIDE_MAX = 30_000;
-export const EMPTY_GUIDE: MonoGuide = { make: '', review: '', reviewOn: false, updatedAt: null };
+export const EMPTY_GUIDE: MonoGuide = { make: '', review: '', reviewOn: false, exam: '', pro: '', image: '', talk: '', updatedAt: null };
 
 export function cleanGuide(v: unknown): MonoGuide {
   const o = v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
@@ -24,6 +30,10 @@ export function cleanGuide(v: unknown): MonoGuide {
     make: txt(o.make),
     review: txt(o.review),
     reviewOn: o.reviewOn === true,
+    exam: txt(o.exam),
+    pro: txt(o.pro),
+    image: txt(o.image),
+    talk: txt(o.talk),
     updatedAt: typeof o.updatedAt === 'string' ? o.updatedAt : null,
   };
 }
@@ -96,4 +106,11 @@ export function parseReview(text: string): ReviewParsed {
   let final = i >= 0 ? text.slice(i + FINAL_MARK.length).trim() : null;
   if (final && !/##\s*독백/.test(final)) final = null; // 형식이 깨졌으면 쓰지 않음
   return { final, review, before: num(/수정\s*전\s*총점\s*[:：]?\s*(\d{1,3})/), after: num(/수정\s*후\s*총점\s*[:：]?\s*(\d{1,3})/) };
+}
+
+/** 해석·내 이미지 등: 관리자 기준을 프롬프트 끝에 붙인다 (원문 구조를 자르지 않음) */
+export function appendGuide(text: string, extra: string): string {
+  const t = extra.trim();
+  if (!t) return text;
+  return `${text}\n\n[관리자 기준 — 위 내용과 부딪히면 이 기준을 따릅니다. 출력 형식은 위의 것을 지킵니다]\n${t}`;
 }

@@ -281,25 +281,48 @@
       swRow('monoExamples', '송무 예시 독백 5편', '말의 감각을 참고하라고 함께 보내는 예시'),
       h('p', { class: 'adm-leg' }, '둘 다 꺼도 배우의 재료(이야기·답)와 결과 형식은 그대로 보내요.'));
 
-    /* 독백 기준 (11-27): 제작 기준·검수 기준을 한글 그대로 넣고 저장 → 다음 독백부터 적용 */
-    const g = Object.assign({ make: '', review: '', reviewOn: false, updatedAt: null }, d.guide || {});
-    const ta = (v, ph) => { const t = h('textarea', { class: 'guide-ta', placeholder: ph, maxlength: '30000' }); t.value = v; return t; };
-    const makeTa = ta(g.make, '여기에 「창작 독백 제작 기준」을 붙여 넣어요. 비워 두면 기본 7줄로 써요.');
-    const reviewTa = ta(g.review, '여기에 「평가 및 검수 기준」을 붙여 넣어요. 비워 두면 검수하지 않아요.');
+    /* 기준 (11-27 독백, 11-28 해석·내 이미지·연기 대화): 한글 그대로 넣고 저장 → 다음 호출부터 적용 */
+    const g = Object.assign({ make: '', review: '', reviewOn: false, exam: '', pro: '', image: '', talk: '', updatedAt: null }, d.guide || {});
+    const ta = (id, v, ph) => { const t = h('textarea', { class: 'guide-ta', id, placeholder: ph, maxlength: '30000' }); t.value = v || ''; return t; };
     const cnt = (t) => { const c = h('span', { class: 'adm-leg' }); const f = () => { c.textContent = t.value.length.toLocaleString('ko-KR') + ' / 30,000자'; }; t.addEventListener('input', f); f(); return c; };
+    const T = {
+      make: ta('guide-make', g.make, '여기에 「창작 독백 제작 기준」을 붙여 넣어요. 비워 두면 기본 7줄로 써요.'),
+      review: ta('guide-review', g.review, '여기에 「평가 및 검수 기준」을 붙여 넣어요. 비워 두면 검수하지 않아요.'),
+      exam: ta('guide-exam', g.exam, '입시 해석에 더할 기준. 비워 두면 기본 지침만 써요.'),
+      pro: ta('guide-pro', g.pro, '전문 해석(주고받기)에 더할 기준. 비워 두면 기본 지침만 써요.'),
+      image: ta('guide-image', g.image, '내 이미지에 더할 기준. 비워 두면 기본 지침만 써요.'),
+      talk: ta('guide-talk', g.talk, '연기 대화의 기준. 비워 두면 기본 원칙(원리는 분명히, 선택은 여러 갈래, 연기 방식은 정해 주지 않음)만 써요.'),
+    };
     const revOn = h('input', { type: 'checkbox', id: 'guide-review-on', role: 'switch' }); revOn.checked = !!g.reviewOn;
     const saveG = h('button', { type: 'button', class: 'btn primary' }, '기준 저장');
     saveG.addEventListener('click', async () => {
       saveG.disabled = true;
-      const r = await api('POST', { guide: { make: makeTa.value, review: reviewTa.value, reviewOn: revOn.checked } }).catch(() => ({ status: 0 }));
+      const body = { reviewOn: revOn.checked };
+      Object.keys(T).forEach((k) => { body[k] = T[k].value; });
+      const r = await api('POST', { guide: body }).catch(() => ({ status: 0 }));
       saveG.disabled = false;
-      if (r.status === 200 && r.j.guide) { d.guide = r.j.guide; toast('기준을 저장했어요. 다음 독백부터 적용돼요'); render(d); } else toast('저장하지 못했어요. 다시 눌러 주세요');
+      if (r.status === 200 && r.j.guide) { d.guide = r.j.guide; toast('기준을 저장했어요. 다음 호출부터 적용돼요'); render(d); } else toast('저장하지 못했어요. 다시 눌러 주세요');
     });
-    const gCard = h('div', { class: 'card' }, h('h3', {}, '독백 기준 (제작 · 검수)'),
-      h('p', { class: 'adm-leg' }, '한글 그대로 붙여 넣고 저장하면 바로 다음 독백부터 적용돼요. 다시 배포할 필요 없어요. 위 스위치에서 「쓰는 기준」을 끄면 제작 기준도 함께 꺼져요.' + (g.updatedAt ? ' 마지막 저장: ' + timeOf(g.updatedAt) : '')),
-      h('label', { class: 'f', for: 'guide-make' }, '창작 독백 제작 기준'), Object.assign(makeTa, { id: 'guide-make' }), cnt(makeTa),
-      h('label', { class: 'f', for: 'guide-review' }, '평가 및 검수 기준'), Object.assign(reviewTa, { id: 'guide-review' }), cnt(reviewTa),
-      h('label', { class: 'sw-row', for: 'guide-review-on' }, revOn, h('span', { class: 'sw-txt' }, h('b', {}, '검수 단계 켜기'), h('span', {}, '1차로 쓴 독백을 검수 기준으로 평가·수정해 최종본만 배우에게 보내요. AI를 두 번 불러 시간·비용이 약 두 배예요.'))),
+    const fld = (label, k) => [h('label', { class: 'f', for: T[k].id }, label), T[k], cnt(T[k])];
+    const PANES = [
+      ['mono', '독백', [...fld('창작 독백 제작 기준', 'make'), ...fld('평가 및 검수 기준', 'review'),
+        h('label', { class: 'sw-row', for: 'guide-review-on' }, revOn, h('span', { class: 'sw-txt' }, h('b', {}, '검수 단계 켜기'), h('span', {}, '1차로 쓴 독백을 검수 기준으로 평가·수정해 최종본만 배우에게 보내요. AI를 두 번 불러 시간·비용이 약 두 배예요.')))]],
+      ['exam', '해석 입시', fld('입시 해석 기준 (기본 지침 끝에 덧붙음)', 'exam')],
+      ['pro', '해석 전문', fld('전문 해석 기준 (기본 지침 끝에 덧붙음)', 'pro')],
+      ['image', '내 이미지', fld('내 이미지 기준 (기본 지침 끝에 덧붙음)', 'image')],
+      ['talk', '연기 대화', fld('연기 대화 기준', 'talk')],
+    ];
+    window.__gTab = window.__gTab || 'mono';
+    const panes = {};
+    const tabs = h('div', { class: 'seg guide-tabs', role: 'tablist' }, PANES.map(([k, label]) => {
+      const b = h('button', { type: 'button', role: 'tab', 'data-k': k, class: window.__gTab === k ? 'on' : '' }, label + ((k === 'mono' ? g.make || g.review : g[k]) ? ' •' : ''));
+      b.addEventListener('click', () => { window.__gTab = k; tabs.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); Object.entries(panes).forEach(([pk, el]) => { el.hidden = pk !== k; }); });
+      return b;
+    }));
+    PANES.forEach(([k, , kids]) => { panes[k] = h('div', { class: 'guide-pane', 'data-k': k, hidden: window.__gTab !== k }, kids); });
+    const gCard = h('div', { class: 'card' }, h('h3', {}, '기준 (독백 · 해석 · 내 이미지 · 연기 대화)'),
+      h('p', { class: 'adm-leg' }, '한글 그대로 붙여 넣고 저장하면 바로 다음 호출부터 적용돼요. 다시 배포할 필요 없어요. • 표시는 기준이 들어 있는 탭이에요. 위 스위치에서 「쓰는 기준」을 끄면 독백 제작 기준도 함께 꺼져요.' + (g.updatedAt ? ' 마지막 저장: ' + timeOf(g.updatedAt) : '')),
+      tabs, ...Object.values(panes),
       h('div', { class: 'out-acts' }, saveG));
 
     /* 검수 기록 (관리자만) */

@@ -4,7 +4,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import * as P from './sokmal-prompts.js';
 import { LIMITS, type CounterKey } from '../limits';
 import { applyMonoSwitches, DEFAULT_SWITCHES, switchTag, type PromptSwitches } from './switches';
-import { applyMakeGuide, EMPTY_GUIDE, type MonoGuide } from '../guide';
+import { appendGuide, applyMakeGuide, EMPTY_GUIDE, type MonoGuide } from '../guide';
 
 export class BadInput extends Error {
   constructor(public code: 'bad_request' | 'prompt_too_large', msg: string) {
@@ -184,13 +184,16 @@ function parseBase(v: unknown): Base {
 export function basePrompt(b: Base, sw: PromptSwitches = DEFAULT_SWITCHES, guide: MonoGuide = EMPTY_GUIDE): string {
   switch (b.kind) {
     case 'interpret':
-      return b.mode === 'exam'
-        ? P.examPromptOf({ text: b.input.text, work: b.input.work, part: b.input.part, mine: b.input.mine })
-        : P.proPromptOf({ ...b.input, last: b.last });
+      return appendGuide(
+        b.mode === 'exam'
+          ? P.examPromptOf({ text: b.input.text, work: b.input.work, part: b.input.part, mine: b.input.mine })
+          : P.proPromptOf({ ...b.input, last: b.last }),
+        b.mode === 'exam' ? guide.exam : guide.pro,
+      );
     case 'mono':
       return applyMakeGuide(applyMonoSwitches(P.monoPrompt(b.c, b.qa, b.mMode, b.hist), sw), sw.monoRules ? guide.make : '', b.c.kw.mtype);
     case 'image':
-      return P.imagePromptOf(b.input);
+      return appendGuide(P.imagePromptOf(b.input), guide.image);
     case 'design':
       return P.designPromptOf(b.d);
   }
@@ -223,7 +226,7 @@ export function buildJob(body: unknown, left: LeftFn, sw: PromptSwitches = DEFAU
       return {
         feature: '해석·' + mode,
         tier: 'main',
-        messages: [user(basePrompt(b))],
+        messages: [user(basePrompt(b, sw, guide))],
         counter: { key: mode, kind: 'run', limit: LIMITS.daily[mode] },
         base: b,
         refundMeta: true,
@@ -250,7 +253,7 @@ export function buildJob(body: unknown, left: LeftFn, sw: PromptSwitches = DEFAU
       const b = parseBase({ ...body, kind: 'image' }) as ImageBase;
       const written = [b.input.f.self, b.input.f.char, b.input.f.look, b.input.f.strength].filter(Boolean).length;
       if (written === 0 && b.input.answers.length < 5) throw new BadInput('bad_request', '내 이미지 입력');
-      return { feature: '내 이미지', tier: 'main', messages: [user(basePrompt(b))], counter: null, base: b, refundMeta: false };
+      return { feature: '내 이미지', tier: 'main', messages: [user(basePrompt(b, sw, guide))], counter: null, base: b, refundMeta: false };
     }
     case 'design': {
       const b = parseBase({ ...body, kind: 'design' }) as DesignBase;
